@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rifa Verde</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="background-glow background-glow-left"></div>
+    <div class="background-glow background-glow-right"></div>
+
+    <header class="topbar container">
+      <div class="brand-wrap">
+        <span class="brand-dot"></span>
+        <span class="brand">Rifa Verde</span>
+      </div>
+      <nav class="topnav">
+        <a href="#premios">Premios</a>
+        <a href="#numeros">Números</a>
+        <a href="#checkout">Pago</a>
+        <a href="./admin.html">Admin</a>
+      </nav>
+    </header>
+
+    <main class="page container">
+      <section class="card hero">
+        <div>
+          <span class="eyebrow">Rifa digital</span>
+          <h1>Elige tus números y paga en un solo paso.</h1>
+          <p>
+            Selecciona uno o varios números, completa tus datos y continúa al pago.
+            El sistema registra el nombre, celular y correo del comprador en todos los números elegidos.
+          </p>
+          <div class="hero-tags">
+            <span>Pago con Khipu</span>
+            <span>Selección múltiple</span>
+            <span>Registro de comprador</span>
+            <span>Estilo OpenAI verde oscuro</span>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <article class="stat-card">
+            <strong id="heroPrice">$2.000</strong>
+            <span>Valor por número</span>
+          </article>
+          <article class="stat-card">
+            <strong id="heroCount">100</strong>
+            <span>Números disponibles en esta rifa</span>
+          </article>
+          <article class="stat-card">
+            <strong>1 pago</strong>
+            <span>Puedes comprar varios números en una sola operación</span>
+          </article>
+        </div>
+      </section>
+
+      <section id="premios" class="card section-card">
+        <div class="section-head compact">
+          <div>
+            <span class="section-kicker">Premios</span>
+            <h2>Lo que puedes ganar</h2>
+          </div>
+        </div>
+
+        <div class="prizes-grid">
+          <article class="prize-card">
+            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80" alt="Premio 1" />
+            <div>
+              <h3>Premio principal</h3>
+              <p>Describe aquí el premio principal. Puedes cambiar esta imagen y este texto por el premio real.</p>
+            </div>
+          </article>
+          <article class="prize-card">
+            <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80" alt="Premio 2" />
+            <div>
+              <h3>Segundo premio</h3>
+              <p>Agrega aquí el detalle del segundo premio. Ideal para destacar valor, fecha y condiciones.</p>
+            </div>
+          </article>
+          <article class="prize-card">
+            <img src="https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80" alt="Premio 3" />
+            <div>
+              <h3>Tercer premio</h3>
+              <p>Usa este espacio para mostrar un premio adicional o un beneficio especial de la rifa.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <section id="numeros" class="card section-card">
+          <div class="section-head compact">
+            <div>
+              <span class="section-kicker">Números</span>
+              <h2>Selecciona o escribe los números que quieres</h2>
+            </div>
+            <button id="refreshBtn" class="ghost-btn small-btn">Actualizar</button>
+          </div>
+
+          <div class="legend">
+            <span><i class="legend-box available"></i> Disponible</span>
+            <span><i class="legend-box reserved"></i> Reservado</span>
+            <span><i class="legend-box paid"></i> Pagado</span>
+            <span><i class="legend-box selected"></i> Seleccionado</span>
+          </div>
+
+          <div class="manual-pick-box">
+            <label for="manualNumbers">Escribe tus números</label>
+            <div class="manual-pick-row">
+              <input id="manualNumbers" type="text" placeholder="Ej. 5, 17, 22" />
+              <button id="applyManualBtn" type="button" class="ghost-btn">Agregar</button>
+              <button id="clearSelectionBtn" type="button" class="ghost-btn">Limpiar</button>
+            </div>
+            <p class="helper-text">Puedes elegir haciendo clic en la grilla o escribiendo varios números separados por coma.</p>
+          </div>
+
+          <div id="numbersGrid" class="numbers-grid"></div>
+        </section>
+
+        <aside id="checkout" class="card sticky-card">
+          <div class="section-head compact">
+            <div>
+              <span class="section-kicker">Checkout</span>
+              <h2>Completa tus datos</h2>
+            </div>
+          </div>
+
+          <form id="checkoutForm" class="checkout-form">
+            <label>
+              Números seleccionados
+              <textarea id="selectedNumbers" rows="3" readonly placeholder="Aún no has seleccionado números"></textarea>
+            </label>
+
+            <div id="selectedBadges" class="selected-badges"></div>
+
+            <label>
+              Nombre completo
+              <input id="name" type="text" placeholder="Tu nombre" required />
+            </label>
+
+            <label>
+              Celular
+              <input id="phone" type="tel" placeholder="+56 9 1234 5678" required />
+            </label>
+
+            <label>
+              Mail
+              <input id="email" type="email" placeholder="correo@ejemplo.com" required />
+            </label>
+
+            <label>
+              RUT
+              <input id="payerRut" type="text" placeholder="12.345.678-9" />
+            </label>
+
+            <div class="summary-box summary-stack">
+              <div>
+                <span>Cantidad</span>
+                <strong id="selectedCount">0 números</strong>
+              </div>
+              <div>
+                <span>Valor unitario</span>
+                <strong id="ticketPrice">$2.000</strong>
+              </div>
+              <div>
+                <span>Total a pagar</span>
+                <strong id="totalPrice">$0</strong>
+              </div>
+            </div>
+
+            <button id="payBtn" type="submit" class="primary-btn">Continuar a pago</button>
+            <p id="statusMessage" class="status-message">Selecciona uno o más números para continuar.</p>
+          </form>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

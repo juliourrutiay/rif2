@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin | Rifa Verde</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="background-glow background-glow-left"></div>
+    <div class="background-glow background-glow-right"></div>
+
+    <header class="topbar container">
+      <div class="brand-wrap">
+        <span class="brand-dot"></span>
+        <span class="brand">Rifa Verde Admin</span>
+      </div>
+      <nav class="topnav">
+        <a href="./index.html">Volver a la rifa</a>
+      </nav>
+    </header>
+
+    <main class="page container">
+      <section class="card section-card admin-shell">
+        <div class="section-head compact">
+          <div>
+            <span class="section-kicker">Panel administrador</span>
+            <h2>Revisión rápida y exportación</h2>
+          </div>
+        </div>
+
+        <div class="admin-login">
+          <label>
+            Token administrador
+            <input id="adminToken" type="password" placeholder="Ingresa tu token" />
+          </label>
+          <button id="loadAdminBtn" class="primary-btn" type="button">Cargar datos</button>
+          <a id="downloadCsvLink" class="ghost-btn" href="#" target="_blank" rel="noreferrer">Exportar CSV</a>
+        </div>
+
+        <div class="admin-grid-top">
+          <div class="metric-box">
+            <span>Total</span>
+            <strong id="metricTotal">0</strong>
+          </div>
+          <div class="metric-box">
+            <span>Pagados</span>
+            <strong id="metricPaid">0</strong>
+          </div>
+          <div class="metric-box">
+            <span>Reservados</span>
+            <strong id="metricReserved">0</strong>
+          </div>
+          <div class="metric-box">
+            <span>Disponibles</span>
+            <strong id="metricAvailable">0</strong>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Estado</th>
+                <th>Nombre</th>
+                <th>Celular</th>
+                <th>Mail</th>
+                <th>Canal</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+
+        <p id="adminStatus" class="status-message">Ingresa tu token para consultar la información.</p>
+      </section>
+    </main>
+
+    <script src="./admin.js" type="module"></script>
+  </body>
+</html>
