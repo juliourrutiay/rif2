@@ -70,13 +70,34 @@
                 <th>Celular</th>
                 <th>Mail</th>
                 <th>Canal</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody id="adminTableBody"></tbody>
           </table>
         </div>
 
-        <p id="adminStatus" class="status-message">Ingresa tu token para consultar la información.</p>
+        <p id="adminStatus" class="status-message">
+          Ingresa tu token para consultar la información.
+        </p>
+
+        <!-- ======================= -->
+        <!-- 🎁 NUEVA SECCIÓN PREMIOS -->
+        <!-- ======================= -->
+
+        <div style="margin-top: 40px;">
+          <h3>Gestión de premios</h3>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <input id="prizeTitle" placeholder="Título" />
+            <input id="prizeDesc" placeholder="Descripción" />
+            <input id="prizeImg" placeholder="URL Imagen" />
+            <button id="addPrizeBtn" class="primary-btn">Agregar premio</button>
+          </div>
+
+          <div id="prizeList"></div>
+        </div>
+
       </section>
     </main>
 
