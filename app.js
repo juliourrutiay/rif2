@@ -24,6 +24,8 @@ const elements = {
   statusMessage: document.getElementById('statusMessage'),
 };
 
+let countdownInterval = null;
+
 function money(value) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(value);
 }
@@ -125,6 +127,33 @@ async function loadNumbers() {
   }
 }
 
+function startCountdown(reservedUntil) {
+  const end = new Date(reservedUntil).getTime();
+
+  clearInterval(countdownInterval);
+
+  countdownInterval = setInterval(() => {
+    const diff = end - Date.now();
+
+    if (diff <= 0) {
+      clearInterval(countdownInterval);
+
+      state.selected.clear();
+      syncSummary();
+      loadNumbers();
+
+      setStatus('⛔ Tiempo expirado. Números liberados.', 'error');
+      return;
+    }
+
+    const min = Math.floor(diff / 60000);
+    const sec = Math.floor((diff % 60000) / 1000);
+
+    setStatus(`⏳ Reserva: ${min}:${sec.toString().padStart(2, '0')}`, 'warning');
+
+  }, 1000);
+}
+
 async function handleCheckout(event) {
   event.preventDefault();
 
@@ -162,9 +191,15 @@ async function handleCheckout(event) {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'No fue posible iniciar el pago.');
 
+    // 👉 NUEVO: inicia contador
+    if (result.reserved_until) {
+      startCountdown(result.reserved_until);
+    }
+
     if (!result.payment_url) throw new Error('El backend no devolvió la URL de pago.');
 
     window.location.href = result.payment_url;
+
   } catch (error) {
     setStatus(error.message || 'Ocurrió un error al crear el pago.', 'error');
   }
@@ -181,6 +216,40 @@ function bindEvents() {
   elements.checkoutForm.addEventListener('submit', handleCheckout);
 }
 
+// =======================
+// PREMIOS DINÁMICOS
+// =======================
+
+async function loadPrizes() {
+  const container = document.querySelector('.prizes-grid');
+  if (!container) return;
+
+  const res = await fetch(`${API_BASE}/api/prizes`);
+  const data = await res.json();
+
+  container.innerHTML = (data.prizes || []).map(p => `
+    <article class="prize-card">
+      <img src="${p.image}">
+      <div>
+        <h3>${p.title}</h3>
+        <p>${p.description}</p>
+      </div>
+    </article>
+  `).join('');
+}
+
+function setView(mode) {
+  const container = document.querySelector('.prizes-grid');
+  if (!container) return;
+
+  container.className = mode === 'list' ? 'prizes-list' : 'prizes-grid';
+}
+
+// =======================
+// INIT
+// =======================
+
 bindEvents();
 loadNumbers();
+loadPrizes();
 syncSummary();
