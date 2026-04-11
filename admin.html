@@ -8,6 +8,78 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .admin-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 18px 0 14px;
+        align-items: center;
+      }
+
+      .admin-toolbar input,
+      .admin-toolbar select {
+        min-width: 180px;
+      }
+
+      .admin-inline-input,
+      .admin-inline-select {
+        width: 100%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #edf5ef;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font: inherit;
+      }
+
+      .admin-inline-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .admin-row-selected {
+        outline: 1px solid rgba(142, 232, 183, 0.35);
+        background: rgba(142, 232, 183, 0.04);
+      }
+
+      .admin-check {
+        width: 18px;
+        height: 18px;
+      }
+
+      .bulk-note {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .prize-item {
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+      }
+
+      .prize-item-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .prize-item-row img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .prize-item-actions {
+        display: flex;
+        gap: 8px;
+      }
+    </style>
   </head>
   <body>
     <div class="background-glow background-glow-left"></div>
@@ -60,82 +132,38 @@
           </div>
         </div>
 
-        <div style="margin: 24px 0; padding: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px;">
-          <h3 style="margin-top:0;">Editar número</h3>
+        <div class="admin-toolbar">
+          <button id="selectAllBtn" class="ghost-btn" type="button">Seleccionar visibles</button>
+          <button id="clearSelectedBtn" class="ghost-btn" type="button">Limpiar selección</button>
+          <button id="bulkEditBtn" class="primary-btn" type="button">Editar seleccionados</button>
+          <button id="bulkReleaseBtn" class="ghost-btn" type="button">Liberar seleccionados</button>
+        </div>
 
-          <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px;">
-            <label>
-              Número
-              <input id="editNumber" type="number" placeholder="Ej. 15" />
-            </label>
-
-            <label>
-              Estado
-              <select id="editStatus">
-                <option value="available">available</option>
-                <option value="reserved">reserved</option>
-                <option value="paid">paid</option>
-              </select>
-            </label>
-
-            <label>
-              Nombre
-              <input id="editPayerName" type="text" placeholder="Nombre comprador" />
-            </label>
-
-            <label>
-              Celular
-              <input id="editPayerPhone" type="text" placeholder="Celular" />
-            </label>
-
-            <label>
-              Mail
-              <input id="editPayerEmail" type="email" placeholder="Mail" />
-            </label>
-
-            <label>
-              RUT
-              <input id="editPayerRut" type="text" placeholder="RUT" />
-            </label>
-
-            <label>
-              Canal de pago
-              <input id="editPaymentChannel" type="text" placeholder="manual / khipu" />
-            </label>
-
-            <label>
-              ID pago
-              <input id="editPaymentId" type="text" placeholder="payment_id" />
-            </label>
-
-            <label>
-              ID transacción
-              <input id="editTransactionId" type="text" placeholder="transaction_id" />
-            </label>
-
-            <label>
-              Reservado hasta
-              <input id="editReservedUntil" type="text" placeholder="2026-04-11T15:00:00.000Z" />
-            </label>
+        <div id="bulkEditor" style="display:none; margin: 0 0 18px; padding: 16px; border:1px solid rgba(255,255,255,0.08); border-radius:16px;">
+          <div style="margin-bottom:10px; font-weight:700;">Edición masiva</div>
+          <div class="admin-toolbar" style="margin-top:0;">
+            <select id="bulkStatus">
+              <option value="">Estado (sin cambio)</option>
+              <option value="available">available</option>
+              <option value="reserved">reserved</option>
+              <option value="paid">paid</option>
+            </select>
+            <input id="bulkPayerName" type="text" placeholder="Nombre" />
+            <input id="bulkPayerPhone" type="text" placeholder="Celular" />
+            <input id="bulkPayerEmail" type="email" placeholder="Mail" />
+            <input id="bulkPayerRut" type="text" placeholder="RUT" />
+            <input id="bulkPaymentChannel" type="text" placeholder="Canal" />
+            <input id="bulkNotes" type="text" placeholder="Notas" />
+            <button id="applyBulkBtn" class="primary-btn" type="button">Guardar en seleccionados</button>
           </div>
-
-          <div style="margin-top:12px;">
-            <label style="display:block;">
-              Notas
-              <textarea id="editNotes" rows="3" placeholder="Notas internas"></textarea>
-            </label>
-          </div>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
-            <button id="saveTicketBtn" class="primary-btn" type="button">Guardar cambios</button>
-            <button id="clearTicketFormBtn" class="ghost-btn" type="button">Limpiar formulario</button>
-          </div>
+          <div class="bulk-note">Solo se actualizan los campos que completes.</div>
         </div>
 
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
               <tr>
+                <th></th>
                 <th>Número</th>
                 <th>Estado</th>
                 <th>Nombre</th>
