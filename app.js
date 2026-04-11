@@ -17,8 +17,6 @@ const elements = {
   heroCount: document.getElementById('heroCount'),
   totalPrice: document.getElementById('totalPrice'),
   refreshBtn: document.getElementById('refreshBtn'),
-  manualNumbers: document.getElementById('manualNumbers'),
-  applyManualBtn: document.getElementById('applyManualBtn'),
   clearSelectionBtn: document.getElementById('clearSelectionBtn'),
   checkoutForm: document.getElementById('checkoutForm'),
   statusMessage: document.getElementById('statusMessage'),
@@ -27,7 +25,11 @@ const elements = {
 let countdownInterval = null;
 
 function money(value) {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function setStatus(message, type = '') {
@@ -37,16 +39,22 @@ function setStatus(message, type = '') {
 
 function syncSummary() {
   const selected = Array.from(state.selected).sort((a, b) => a - b);
+  const availableCount = state.numbers.filter((ticket) => ticket.status === 'available').length;
+
   elements.selectedNumbers.value = selected.length ? selected.join(', ') : '';
   elements.selectedCount.textContent = `${selected.length} ${selected.length === 1 ? 'número' : 'números'}`;
   elements.totalPrice.textContent = money(selected.length * RAFFLE_PRICE);
   elements.ticketPrice.textContent = money(RAFFLE_PRICE);
   elements.heroPrice.textContent = money(RAFFLE_PRICE);
-  elements.heroCount.textContent = String(RAFFLE_SIZE);
+  elements.heroCount.textContent = String(availableCount);
 
   elements.selectedBadges.innerHTML = selected
     .map((number) => `<span class="selected-badge">#${number}</span>`)
     .join('');
+
+  if (elements.clearSelectionBtn) {
+    elements.clearSelectionBtn.style.display = selected.length ? 'inline-flex' : 'none';
+  }
 
   if (!selected.length) {
     setStatus('Selecciona uno o más números para continuar.');
@@ -89,27 +97,6 @@ function toggleNumber(number) {
   syncSummary();
 }
 
-function applyManualSelection() {
-  const raw = elements.manualNumbers.value.trim();
-  if (!raw) return;
-
-  const inputNumbers = raw
-    .split(',')
-    .map((value) => Number(value.trim()))
-    .filter((value) => Number.isInteger(value) && value >= 1 && value <= RAFFLE_SIZE);
-
-  inputNumbers.forEach((number) => {
-    const ticket = state.numbers.find((item) => item.number === number);
-    if (ticket?.status === 'available') {
-      state.selected.add(number);
-    }
-  });
-
-  renderGrid();
-  syncSummary();
-  elements.manualNumbers.value = '';
-}
-
 async function loadNumbers() {
   try {
     setStatus('Cargando números...');
@@ -139,6 +126,9 @@ function startCountdown(reservedUntil) {
       clearInterval(countdownInterval);
 
       state.selected.clear();
+      document.getElementById('name').value = '';
+      document.getElementById('phone').value = '';
+      document.getElementById('email').value = '';
       syncSummary();
       loadNumbers();
 
@@ -150,7 +140,6 @@ function startCountdown(reservedUntil) {
     const sec = Math.floor((diff % 60000) / 1000);
 
     setStatus(`⏳ Reserva: ${min}:${sec.toString().padStart(2, '0')}`, 'warning');
-
   }, 1000);
 }
 
@@ -161,7 +150,6 @@ async function handleCheckout(event) {
   const payerName = document.getElementById('name').value.trim();
   const payerPhone = document.getElementById('phone').value.trim();
   const payerEmail = document.getElementById('email').value.trim();
-  const payerRut = document.getElementById('payerRut').value.trim();
 
   if (!numbers.length) {
     setStatus('Debes elegir al menos un número.', 'warning');
@@ -184,14 +172,13 @@ async function handleCheckout(event) {
         payerName,
         payerPhone,
         payerEmail,
-        payerRut,
+        payerRut: '',
       }),
     });
 
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'No fue posible iniciar el pago.');
 
-    // 👉 NUEVO: inicia contador
     if (result.reserved_until) {
       startCountdown(result.reserved_until);
     }
@@ -199,26 +186,10 @@ async function handleCheckout(event) {
     if (!result.payment_url) throw new Error('El backend no devolvió la URL de pago.');
 
     window.location.href = result.payment_url;
-
   } catch (error) {
     setStatus(error.message || 'Ocurrió un error al crear el pago.', 'error');
   }
 }
-
-function bindEvents() {
-  elements.refreshBtn.addEventListener('click', loadNumbers);
-  elements.applyManualBtn.addEventListener('click', applyManualSelection);
-  elements.clearSelectionBtn.addEventListener('click', () => {
-    state.selected.clear();
-    renderGrid();
-    syncSummary();
-  });
-  elements.checkoutForm.addEventListener('submit', handleCheckout);
-}
-
-// =======================
-// PREMIOS DINÁMICOS
-// =======================
 
 async function loadPrizes() {
   const container = document.querySelector('.prizes-grid');
@@ -237,7 +208,7 @@ async function loadPrizes() {
       return;
     }
 
-    container.innerHTML = prizes.map(p => `
+    container.innerHTML = prizes.map((p) => `
       <article class="prize-card">
         <img src="${p.image}" alt="${p.title}">
         <div>
@@ -251,16 +222,17 @@ async function loadPrizes() {
   }
 }
 
-function setView(mode) {
-  const container = document.querySelector('.prizes-grid');
-  if (!container) return;
+function bindEvents() {
+  elements.refreshBtn.addEventListener('click', loadNumbers);
 
-  container.className = mode === 'list' ? 'prizes-list' : 'prizes-grid';
+  elements.clearSelectionBtn.addEventListener('click', () => {
+    state.selected.clear();
+    renderGrid();
+    syncSummary();
+  });
+
+  elements.checkoutForm.addEventListener('submit', handleCheckout);
 }
-
-// =======================
-// INIT
-// =======================
 
 bindEvents();
 loadNumbers();
