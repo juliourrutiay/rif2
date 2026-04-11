@@ -68,3 +68,86 @@ async function loadAdminData() {
 }
 
 elements.loadAdminBtn.addEventListener('click', loadAdminData);
+// 👉 AGREGA ESTO AL FINAL DEL ARCHIVO  [oai_citation:0‡server.js](sediment://file_00000000df04720ebb940f243f61d18d)
+
+// =======================
+// ADMIN - UPDATE TICKET
+// =======================
+app.post('/api/admin/update-ticket', async (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token !== ADMIN_TOKEN) return unauthorized(res);
+
+  try {
+    const { number, data } = req.body;
+
+    const { error } = await supabase
+      .from('raffle_tickets')
+      .update(data)
+      .eq('raffle_id', RAFFLE_ID)
+      .eq('number', number);
+
+    if (error) throw error;
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =======================
+// ADMIN - RELEASE
+// =======================
+app.post('/api/admin/release-ticket', async (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token !== ADMIN_TOKEN) return unauthorized(res);
+
+  try {
+    const { number } = req.body;
+
+    const { error } = await supabase
+      .from('raffle_tickets')
+      .update({
+        status: 'available',
+        reserved_until: null,
+        payer_name: null,
+        payer_email: null,
+        payer_phone: null,
+      })
+      .eq('raffle_id', RAFFLE_ID)
+      .eq('number', number);
+
+    if (error) throw error;
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =======================
+// PREMIOS CRUD
+// =======================
+app.get('/api/prizes', async (_req, res) => {
+  const { data } = await supabase.from('raffle_prizes').select('*').order('id');
+  res.json({ prizes: data || [] });
+});
+
+app.post('/api/admin/prizes', async (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token !== ADMIN_TOKEN) return unauthorized(res);
+
+  const { title, description, image } = req.body;
+
+  await supabase.from('raffle_prizes').insert([{ title, description, image }]);
+
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/prizes/:id', async (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token !== ADMIN_TOKEN) return unauthorized(res);
+
+  await supabase.from('raffle_prizes').delete().eq('id', req.params.id);
+
+  res.json({ ok: true });
+});
