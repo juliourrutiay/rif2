@@ -69,6 +69,28 @@ function clearBulkInputs() {
   elements.bulkNotes.value = '';
 }
 
+function stopRowClick(event) {
+  event.stopPropagation();
+}
+
+function toggleRowSelection(number, checked) {
+  if (checked) {
+    selectedNumbers.add(number);
+  } else {
+    selectedNumbers.delete(number);
+  }
+  renderRows(currentTickets);
+}
+
+function toggleRowSelectionFromRow(number) {
+  if (selectedNumbers.has(number)) {
+    selectedNumbers.delete(number);
+  } else {
+    selectedNumbers.add(number);
+  }
+  renderRows(currentTickets);
+}
+
 function renderRows(rows) {
   currentTickets = rows;
 
@@ -81,23 +103,38 @@ function renderRows(rows) {
 
       return `
         <tr class="${isSelected ? 'admin-row-selected' : ''}">
-          <td><input class="admin-check" type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleRowSelection(${row.number}, this.checked)" /></td>
+          <td onclick="stopRowClick(event)">
+            <input
+              class="admin-check"
+              type="checkbox"
+              ${isSelected ? 'checked' : ''}
+              onchange="toggleRowSelection(${row.number}, this.checked)"
+            />
+          </td>
           <td>${row.number}</td>
-          <td>
+          <td onclick="stopRowClick(event)">
             <select id="edit-status-${row.number}" class="admin-inline-select">
               <option value="available" ${draft.status === 'available' ? 'selected' : ''}>available</option>
               <option value="reserved" ${draft.status === 'reserved' ? 'selected' : ''}>reserved</option>
               <option value="paid" ${draft.status === 'paid' ? 'selected' : ''}>paid</option>
             </select>
           </td>
-          <td><input id="edit-payer-name-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_name)}" /></td>
-          <td><input id="edit-payer-phone-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_phone)}" /></td>
-          <td><input id="edit-payer-email-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_email)}" /></td>
-          <td><input id="edit-payment-channel-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payment_channel)}" /></td>
-          <td>
+          <td onclick="stopRowClick(event)">
+            <input id="edit-payer-name-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_name)}" />
+          </td>
+          <td onclick="stopRowClick(event)">
+            <input id="edit-payer-phone-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_phone)}" />
+          </td>
+          <td onclick="stopRowClick(event)">
+            <input id="edit-payer-email-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_email)}" />
+          </td>
+          <td onclick="stopRowClick(event)">
+            <input id="edit-payment-channel-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payment_channel)}" />
+          </td>
+          <td onclick="stopRowClick(event)">
             <div class="admin-inline-actions">
-              <button type="button" onclick="saveInlineRow(${row.number})">Guardar</button>
-              <button type="button" onclick="cancelInlineEdit(${row.number})">Cancelar</button>
+              <button type="button" onclick="saveInlineRow(${row.number}); stopRowClick(event);">Guardar</button>
+              <button type="button" onclick="cancelInlineEdit(${row.number}); stopRowClick(event);">Cancelar</button>
             </div>
           </td>
         </tr>
@@ -105,19 +142,26 @@ function renderRows(rows) {
     }
 
     return `
-      <tr class="${isSelected ? 'admin-row-selected' : ''}">
-        <td><input class="admin-check" type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleRowSelection(${row.number}, this.checked)" /></td>
+      <tr class="${isSelected ? 'admin-row-selected' : ''}" onclick="toggleRowSelectionFromRow(${row.number})" style="cursor:pointer;">
+        <td onclick="stopRowClick(event)">
+          <input
+            class="admin-check"
+            type="checkbox"
+            ${isSelected ? 'checked' : ''}
+            onchange="toggleRowSelection(${row.number}, this.checked)"
+          />
+        </td>
         <td>${row.number ?? ''}</td>
         <td>${row.status ?? ''}</td>
         <td>${row.payer_name ?? ''}</td>
         <td>${row.payer_phone ?? ''}</td>
         <td>${row.payer_email ?? ''}</td>
         <td>${row.payment_channel ?? ''}</td>
-        <td>
+        <td onclick="stopRowClick(event)">
           <div class="admin-inline-actions">
-            <button type="button" onclick="startInlineEdit(${row.number})">Editar</button>
-            <button type="button" onclick="releaseNumber(${row.number})">Liberar</button>
-            <button type="button" onclick="markAsPaid(${row.number})">Pagado</button>
+            <button type="button" onclick="startInlineEdit(${row.number}); stopRowClick(event);">Editar</button>
+            <button type="button" onclick="releaseNumber(${row.number}); stopRowClick(event);">Liberar</button>
+            <button type="button" onclick="markAsPaid(${row.number}); stopRowClick(event);">Pagado</button>
           </div>
         </td>
       </tr>
@@ -135,15 +179,6 @@ function renderRows(rows) {
   elements.metricAvailable.textContent = available;
 
   toggleBulkEditor();
-}
-
-function toggleRowSelection(number, checked) {
-  if (checked) {
-    selectedNumbers.add(number);
-  } else {
-    selectedNumbers.delete(number);
-  }
-  renderRows(currentTickets);
 }
 
 function startInlineEdit(number) {
@@ -246,6 +281,7 @@ async function applyBulkEdit() {
     }
 
     clearBulkInputs();
+    editingRows.clear();
     await loadAdminData();
     setStatus(`Se actualizaron ${numbers.length} número(s) correctamente.`, 'success');
   } catch (error) {
@@ -344,6 +380,7 @@ async function releaseSelectedNumbers() {
     }
 
     selectedNumbers.clear();
+    editingRows.clear();
     await loadAdminData();
     setStatus(`Se liberaron ${numbers.length} número(s) correctamente.`, 'success');
   } catch (error) {
@@ -549,3 +586,5 @@ window.startInlineEdit = startInlineEdit;
 window.cancelInlineEdit = cancelInlineEdit;
 window.saveInlineRow = saveInlineRow;
 window.toggleRowSelection = toggleRowSelection;
+window.toggleRowSelectionFromRow = toggleRowSelectionFromRow;
+window.stopRowClick = stopRowClick;
