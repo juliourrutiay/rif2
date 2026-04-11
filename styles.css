@@ -204,3 +204,14 @@ a { color: inherit; text-decoration: none; }
   .numbers-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); }
   .topbar { padding-top: 16px; flex-direction: column; align-items: flex-start; gap: 12px; }
 }
+
+.section-spacing-top {
+  margin-top: 24px;
+}
+
+.checkout-trust-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
