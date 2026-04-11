@@ -29,17 +29,16 @@
     <main class="page container">
       <section class="card hero">
         <div>
-          <span class="eyebrow">Rifa digital</span>
-          <h1>Elige tus números y paga en un solo paso.</h1>
+          <span class="eyebrow">Rifa solidaria</span>
+          <h1>Tu ayuda puede marcar una diferencia real.</h1>
           <p>
-            Selecciona uno o varios números, completa tus datos y continúa al pago.
-            El sistema registra el nombre, celular y correo del comprador en todos los números elegidos.
+            Esta rifa nace para apoyar a un colaborador que hoy enfrenta un momento complejo a causa de una enfermedad.
+            Cada número comprado es una forma concreta de acompañar, aportar y dar esperanza en un momento en que toda ayuda cuenta.
           </p>
           <div class="hero-tags">
             <span>Pago con Khipu</span>
             <span>Selección múltiple</span>
             <span>Registro de comprador</span>
-            <span>Estilo OpenAI verde oscuro</span>
           </div>
         </div>
 
@@ -49,12 +48,12 @@
             <span>Valor por número</span>
           </article>
           <article class="stat-card">
-            <strong id="heroCount">100</strong>
-            <span>Números disponibles en esta rifa</span>
+            <strong id="heroCount">0</strong>
+            <span>Números disponibles para comprar</span>
           </article>
           <article class="stat-card">
-            <strong>1 pago</strong>
-            <span>Puedes comprar varios números en una sola operación</span>
+            <strong>1 aporte</strong>
+            <span>Tu participación ayuda directamente a esta causa</span>
           </article>
         </div>
       </section>
@@ -62,10 +61,6 @@
       <section id="premios" class="card section-card">
         <div class="section-head compact">
           <div>
-                <div style="margin-bottom:10px;">
-                      <button onclick="setView('grid')">Grid</button>
-                      <button onclick="setView('list')">Lista</button>
-                </div>
             <span class="section-kicker">Premios</span>
             <h2>Lo que puedes ganar</h2>
           </div>
@@ -101,9 +96,12 @@
           <div class="section-head compact">
             <div>
               <span class="section-kicker">Números</span>
-              <h2>Selecciona o escribe los números que quieres</h2>
+              <h2>Selecciona los números que quieres</h2>
             </div>
-            <button id="refreshBtn" class="ghost-btn small-btn">Actualizar</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button id="clearSelectionBtn" type="button" class="ghost-btn" style="display:none;">Limpiar selección</button>
+              <button id="refreshBtn" class="ghost-btn small-btn">Actualizar</button>
+            </div>
           </div>
 
           <div class="legend">
@@ -111,16 +109,6 @@
             <span><i class="legend-box reserved"></i> Reservado</span>
             <span><i class="legend-box paid"></i> Pagado</span>
             <span><i class="legend-box selected"></i> Seleccionado</span>
-          </div>
-
-          <div class="manual-pick-box">
-            <label for="manualNumbers">Escribe tus números</label>
-            <div class="manual-pick-row">
-              <input id="manualNumbers" type="text" placeholder="Ej. 5, 17, 22" />
-              <button id="applyManualBtn" type="button" class="ghost-btn">Agregar</button>
-              <button id="clearSelectionBtn" type="button" class="ghost-btn">Limpiar</button>
-            </div>
-            <p class="helper-text">Puedes elegir haciendo clic en la grilla o escribiendo varios números separados por coma.</p>
           </div>
 
           <div id="numbersGrid" class="numbers-grid"></div>
@@ -155,11 +143,6 @@
             <label>
               Mail
               <input id="email" type="email" placeholder="correo@ejemplo.com" required />
-            </label>
-
-            <label>
-              RUT
-              <input id="payerRut" type="text" placeholder="12.345.678-9" />
             </label>
 
             <div class="summary-box summary-stack">
