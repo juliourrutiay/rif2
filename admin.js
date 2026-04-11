@@ -11,29 +11,31 @@ const elements = {
   metricReserved: document.getElementById('metricReserved'),
   metricAvailable: document.getElementById('metricAvailable'),
 
+  selectAllBtn: document.getElementById('selectAllBtn'),
+  clearSelectedBtn: document.getElementById('clearSelectedBtn'),
+  bulkEditBtn: document.getElementById('bulkEditBtn'),
+  bulkReleaseBtn: document.getElementById('bulkReleaseBtn'),
+  bulkEditor: document.getElementById('bulkEditor'),
+  bulkStatus: document.getElementById('bulkStatus'),
+  bulkPayerName: document.getElementById('bulkPayerName'),
+  bulkPayerPhone: document.getElementById('bulkPayerPhone'),
+  bulkPayerEmail: document.getElementById('bulkPayerEmail'),
+  bulkPayerRut: document.getElementById('bulkPayerRut'),
+  bulkPaymentChannel: document.getElementById('bulkPaymentChannel'),
+  bulkNotes: document.getElementById('bulkNotes'),
+  applyBulkBtn: document.getElementById('applyBulkBtn'),
+
   prizeTitle: document.getElementById('prizeTitle'),
   prizeDesc: document.getElementById('prizeDesc'),
   prizeImg: document.getElementById('prizeImg'),
   addPrizeBtn: document.getElementById('addPrizeBtn'),
   prizeList: document.getElementById('prizeList'),
-
-  editNumber: document.getElementById('editNumber'),
-  editStatus: document.getElementById('editStatus'),
-  editPayerName: document.getElementById('editPayerName'),
-  editPayerPhone: document.getElementById('editPayerPhone'),
-  editPayerEmail: document.getElementById('editPayerEmail'),
-  editPayerRut: document.getElementById('editPayerRut'),
-  editPaymentChannel: document.getElementById('editPaymentChannel'),
-  editPaymentId: document.getElementById('editPaymentId'),
-  editTransactionId: document.getElementById('editTransactionId'),
-  editReservedUntil: document.getElementById('editReservedUntil'),
-  editNotes: document.getElementById('editNotes'),
-  saveTicketBtn: document.getElementById('saveTicketBtn'),
-  clearTicketFormBtn: document.getElementById('clearTicketFormBtn'),
 };
 
 let editingPrizeId = null;
 let currentTickets = [];
+const selectedNumbers = new Set();
+const editingRows = new Map();
 
 function getToken() {
   return elements.adminToken.value.trim();
@@ -44,60 +46,140 @@ function setStatus(message, type = '') {
   elements.adminStatus.className = `status-message ${type}`.trim();
 }
 
-function clearTicketForm() {
-  elements.editNumber.value = '';
-  elements.editStatus.value = 'available';
-  elements.editPayerName.value = '';
-  elements.editPayerPhone.value = '';
-  elements.editPayerEmail.value = '';
-  elements.editPayerRut.value = '';
-  elements.editPaymentChannel.value = '';
-  elements.editPaymentId.value = '';
-  elements.editTransactionId.value = '';
-  elements.editReservedUntil.value = '';
-  elements.editNotes.value = '';
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
-function fillTicketForm(ticket) {
-  elements.editNumber.value = ticket.number ?? '';
-  elements.editStatus.value = ticket.status ?? 'available';
-  elements.editPayerName.value = ticket.payer_name ?? '';
-  elements.editPayerPhone.value = ticket.payer_phone ?? '';
-  elements.editPayerEmail.value = ticket.payer_email ?? '';
-  elements.editPayerRut.value = ticket.payer_rut ?? '';
-  elements.editPaymentChannel.value = ticket.payment_channel ?? '';
-  elements.editPaymentId.value = ticket.payment_id ?? '';
-  elements.editTransactionId.value = ticket.transaction_id ?? '';
-  elements.editReservedUntil.value = ticket.reserved_until ?? '';
-  elements.editNotes.value = ticket.notes ?? '';
-
-  setStatus(`Editando número ${ticket.number}.`, 'warning');
+function toggleBulkEditor() {
+  elements.bulkEditor.style.display = selectedNumbers.size ? 'block' : 'none';
 }
 
-async function saveTicketChanges() {
+function clearBulkInputs() {
+  elements.bulkStatus.value = '';
+  elements.bulkPayerName.value = '';
+  elements.bulkPayerPhone.value = '';
+  elements.bulkPayerEmail.value = '';
+  elements.bulkPayerRut.value = '';
+  elements.bulkPaymentChannel.value = '';
+  elements.bulkNotes.value = '';
+}
+
+function renderRows(rows) {
+  currentTickets = rows;
+
+  elements.adminTableBody.innerHTML = rows.map((row) => {
+    const isSelected = selectedNumbers.has(row.number);
+    const isEditing = editingRows.has(row.number);
+
+    if (isEditing) {
+      const draft = editingRows.get(row.number);
+
+      return `
+        <tr class="${isSelected ? 'admin-row-selected' : ''}">
+          <td><input class="admin-check" type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleRowSelection(${row.number}, this.checked)" /></td>
+          <td>${row.number}</td>
+          <td>
+            <select id="edit-status-${row.number}" class="admin-inline-select">
+              <option value="available" ${draft.status === 'available' ? 'selected' : ''}>available</option>
+              <option value="reserved" ${draft.status === 'reserved' ? 'selected' : ''}>reserved</option>
+              <option value="paid" ${draft.status === 'paid' ? 'selected' : ''}>paid</option>
+            </select>
+          </td>
+          <td><input id="edit-payer-name-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_name)}" /></td>
+          <td><input id="edit-payer-phone-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_phone)}" /></td>
+          <td><input id="edit-payer-email-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payer_email)}" /></td>
+          <td><input id="edit-payment-channel-${row.number}" class="admin-inline-input" value="${escapeHtml(draft.payment_channel)}" /></td>
+          <td>
+            <div class="admin-inline-actions">
+              <button type="button" onclick="saveInlineRow(${row.number})">Guardar</button>
+              <button type="button" onclick="cancelInlineEdit(${row.number})">Cancelar</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    return `
+      <tr class="${isSelected ? 'admin-row-selected' : ''}">
+        <td><input class="admin-check" type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleRowSelection(${row.number}, this.checked)" /></td>
+        <td>${row.number ?? ''}</td>
+        <td>${row.status ?? ''}</td>
+        <td>${row.payer_name ?? ''}</td>
+        <td>${row.payer_phone ?? ''}</td>
+        <td>${row.payer_email ?? ''}</td>
+        <td>${row.payment_channel ?? ''}</td>
+        <td>
+          <div class="admin-inline-actions">
+            <button type="button" onclick="startInlineEdit(${row.number})">Editar</button>
+            <button type="button" onclick="releaseNumber(${row.number})">Liberar</button>
+            <button type="button" onclick="markAsPaid(${row.number})">Pagado</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const total = rows.length;
+  const paid = rows.filter((row) => row.status === 'paid').length;
+  const reserved = rows.filter((row) => row.status === 'reserved').length;
+  const available = rows.filter((row) => row.status === 'available').length;
+
+  elements.metricTotal.textContent = total;
+  elements.metricPaid.textContent = paid;
+  elements.metricReserved.textContent = reserved;
+  elements.metricAvailable.textContent = available;
+
+  toggleBulkEditor();
+}
+
+function toggleRowSelection(number, checked) {
+  if (checked) {
+    selectedNumbers.add(number);
+  } else {
+    selectedNumbers.delete(number);
+  }
+  renderRows(currentTickets);
+}
+
+function startInlineEdit(number) {
+  const ticket = currentTickets.find((row) => row.number === number);
+  if (!ticket) return;
+
+  editingRows.set(number, {
+    status: ticket.status ?? 'available',
+    payer_name: ticket.payer_name ?? '',
+    payer_phone: ticket.payer_phone ?? '',
+    payer_email: ticket.payer_email ?? '',
+    payment_channel: ticket.payment_channel ?? '',
+  });
+
+  renderRows(currentTickets);
+  setStatus(`Editando número ${number}.`, 'warning');
+}
+
+function cancelInlineEdit(number) {
+  editingRows.delete(number);
+  renderRows(currentTickets);
+}
+
+async function saveInlineRow(number) {
   const token = getToken();
   if (!token) {
     setStatus('Debes ingresar el token administrador.', 'warning');
     return;
   }
 
-  const number = Number(elements.editNumber.value);
-  if (!Number.isInteger(number) || number <= 0) {
-    setStatus('Debes indicar un número válido.', 'warning');
-    return;
-  }
-
   const data = {
-    status: elements.editStatus.value,
-    payer_name: elements.editPayerName.value.trim() || null,
-    payer_phone: elements.editPayerPhone.value.trim() || null,
-    payer_email: elements.editPayerEmail.value.trim() || null,
-    payer_rut: elements.editPayerRut.value.trim() || null,
-    payment_channel: elements.editPaymentChannel.value.trim() || null,
-    payment_id: elements.editPaymentId.value.trim() || null,
-    transaction_id: elements.editTransactionId.value.trim() || null,
-    reserved_until: elements.editReservedUntil.value.trim() || null,
-    notes: elements.editNotes.value.trim() || null,
+    status: document.getElementById(`edit-status-${number}`).value,
+    payer_name: document.getElementById(`edit-payer-name-${number}`).value.trim() || null,
+    payer_phone: document.getElementById(`edit-payer-phone-${number}`).value.trim() || null,
+    payer_email: document.getElementById(`edit-payer-email-${number}`).value.trim() || null,
+    payment_channel: document.getElementById(`edit-payment-channel-${number}`).value.trim() || null,
   };
 
   try {
@@ -113,10 +195,61 @@ async function saveTicketChanges() {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'No fue posible guardar cambios.');
 
+    editingRows.delete(number);
     await loadAdminData();
     setStatus(`Número ${number} actualizado correctamente.`, 'success');
   } catch (error) {
     setStatus(error.message || 'Error al guardar cambios del número.', 'error');
+  }
+}
+
+async function applyBulkEdit() {
+  const token = getToken();
+  if (!token) {
+    setStatus('Debes ingresar el token administrador.', 'warning');
+    return;
+  }
+
+  const numbers = Array.from(selectedNumbers);
+  if (!numbers.length) {
+    setStatus('Debes seleccionar al menos un número.', 'warning');
+    return;
+  }
+
+  const data = {};
+  if (elements.bulkStatus.value) data.status = elements.bulkStatus.value;
+  if (elements.bulkPayerName.value.trim()) data.payer_name = elements.bulkPayerName.value.trim();
+  if (elements.bulkPayerPhone.value.trim()) data.payer_phone = elements.bulkPayerPhone.value.trim();
+  if (elements.bulkPayerEmail.value.trim()) data.payer_email = elements.bulkPayerEmail.value.trim();
+  if (elements.bulkPayerRut.value.trim()) data.payer_rut = elements.bulkPayerRut.value.trim();
+  if (elements.bulkPaymentChannel.value.trim()) data.payment_channel = elements.bulkPaymentChannel.value.trim();
+  if (elements.bulkNotes.value.trim()) data.notes = elements.bulkNotes.value.trim();
+
+  if (!Object.keys(data).length) {
+    setStatus('Completa al menos un campo para aplicar edición masiva.', 'warning');
+    return;
+  }
+
+  try {
+    for (const number of numbers) {
+      const response = await fetch(`${API_BASE}/api/admin/update-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+        },
+        body: JSON.stringify({ number, data }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `No fue posible actualizar el número ${number}.`);
+    }
+
+    clearBulkInputs();
+    await loadAdminData();
+    setStatus(`Se actualizaron ${numbers.length} número(s) correctamente.`, 'success');
+  } catch (error) {
+    setStatus(error.message || 'Error en edición masiva.', 'error');
   }
 }
 
@@ -182,42 +315,40 @@ async function markAsPaid(number) {
   }
 }
 
-function renderRows(rows) {
-  currentTickets = rows;
+async function releaseSelectedNumbers() {
+  const token = getToken();
+  if (!token) {
+    setStatus('Debes ingresar el token administrador.', 'warning');
+    return;
+  }
 
-  elements.adminTableBody.innerHTML = rows
-    .map((row) => `
-      <tr>
-        <td>${row.number ?? ''}</td>
-        <td>${row.status ?? ''}</td>
-        <td>${row.payer_name ?? ''}</td>
-        <td>${row.payer_phone ?? ''}</td>
-        <td>${row.payer_email ?? ''}</td>
-        <td>${row.payment_channel ?? ''}</td>
-        <td>
-          <button type="button" onclick="editTicket(${row.number})">Editar</button>
-          <button type="button" onclick="releaseNumber(${row.number})">Liberar</button>
-          <button type="button" onclick="markAsPaid(${row.number})">Pagado</button>
-        </td>
-      </tr>
-    `)
-    .join('');
+  const numbers = Array.from(selectedNumbers);
+  if (!numbers.length) {
+    setStatus('Debes seleccionar al menos un número.', 'warning');
+    return;
+  }
 
-  const total = rows.length;
-  const paid = rows.filter((row) => row.status === 'paid').length;
-  const reserved = rows.filter((row) => row.status === 'reserved').length;
-  const available = rows.filter((row) => row.status === 'available').length;
+  try {
+    for (const number of numbers) {
+      const response = await fetch(`${API_BASE}/api/admin/release-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+        },
+        body: JSON.stringify({ number }),
+      });
 
-  elements.metricTotal.textContent = total;
-  elements.metricPaid.textContent = paid;
-  elements.metricReserved.textContent = reserved;
-  elements.metricAvailable.textContent = available;
-}
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `No fue posible liberar el número ${number}.`);
+    }
 
-function editTicket(number) {
-  const ticket = currentTickets.find((row) => row.number === number);
-  if (!ticket) return;
-  fillTicketForm(ticket);
+    selectedNumbers.clear();
+    await loadAdminData();
+    setStatus(`Se liberaron ${numbers.length} número(s) correctamente.`, 'success');
+  } catch (error) {
+    setStatus(error.message || 'Error al liberar seleccionados.', 'error');
+  }
 }
 
 async function loadAdminData() {
@@ -273,15 +404,15 @@ function renderPrizeList(prizes) {
   }
 
   elements.prizeList.innerHTML = prizes.map((p) => `
-    <div style="margin-bottom:12px; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px;">
-      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <img src="${p.image}" alt="${p.title}" style="width:80px; height:80px; object-fit:cover; border-radius:10px;" />
+    <div class="prize-item">
+      <div class="prize-item-row">
+        <img src="${p.image}" alt="${escapeHtml(p.title)}" />
         <div style="flex:1; min-width:220px;">
           <strong>${p.title}</strong>
           <div>${p.description}</div>
         </div>
-        <div style="display:flex; gap:8px;">
-          <button type="button" onclick="editPrize(${JSON.stringify(p).replace(/"/g, '&quot;')})">Editar</button>
+        <div class="prize-item-actions">
+          <button type="button" onclick='editPrize(${JSON.stringify(p).replace(/"/g, '&quot;')})'>Editar</button>
           <button type="button" onclick="deletePrize(${p.id})">Eliminar</button>
         </div>
       </div>
@@ -392,16 +523,29 @@ function editPrize(prize) {
   setStatus(`Editando premio: ${prize.title}`, 'warning');
 }
 
-elements.loadAdminBtn.addEventListener('click', loadAdminData);
-elements.saveTicketBtn.addEventListener('click', saveTicketChanges);
-elements.clearTicketFormBtn.addEventListener('click', clearTicketForm);
-
-if (elements.addPrizeBtn) {
-  elements.addPrizeBtn.addEventListener('click', savePrize);
+function selectAllVisible() {
+  currentTickets.forEach((ticket) => selectedNumbers.add(ticket.number));
+  renderRows(currentTickets);
 }
+
+function clearSelected() {
+  selectedNumbers.clear();
+  renderRows(currentTickets);
+}
+
+elements.loadAdminBtn.addEventListener('click', loadAdminData);
+elements.selectAllBtn.addEventListener('click', selectAllVisible);
+elements.clearSelectedBtn.addEventListener('click', clearSelected);
+elements.bulkEditBtn.addEventListener('click', toggleBulkEditor);
+elements.bulkReleaseBtn.addEventListener('click', releaseSelectedNumbers);
+elements.applyBulkBtn.addEventListener('click', applyBulkEdit);
+elements.addPrizeBtn.addEventListener('click', savePrize);
 
 window.releaseNumber = releaseNumber;
 window.markAsPaid = markAsPaid;
 window.deletePrize = deletePrize;
 window.editPrize = editPrize;
-window.editTicket = editTicket;
+window.startInlineEdit = startInlineEdit;
+window.cancelInlineEdit = cancelInlineEdit;
+window.saveInlineRow = saveInlineRow;
+window.toggleRowSelection = toggleRowSelection;
