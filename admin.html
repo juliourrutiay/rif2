@@ -60,6 +60,78 @@
           </div>
         </div>
 
+        <div style="margin: 24px 0; padding: 18px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px;">
+          <h3 style="margin-top:0;">Editar número</h3>
+
+          <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px;">
+            <label>
+              Número
+              <input id="editNumber" type="number" placeholder="Ej. 15" />
+            </label>
+
+            <label>
+              Estado
+              <select id="editStatus">
+                <option value="available">available</option>
+                <option value="reserved">reserved</option>
+                <option value="paid">paid</option>
+              </select>
+            </label>
+
+            <label>
+              Nombre
+              <input id="editPayerName" type="text" placeholder="Nombre comprador" />
+            </label>
+
+            <label>
+              Celular
+              <input id="editPayerPhone" type="text" placeholder="Celular" />
+            </label>
+
+            <label>
+              Mail
+              <input id="editPayerEmail" type="email" placeholder="Mail" />
+            </label>
+
+            <label>
+              RUT
+              <input id="editPayerRut" type="text" placeholder="RUT" />
+            </label>
+
+            <label>
+              Canal de pago
+              <input id="editPaymentChannel" type="text" placeholder="manual / khipu" />
+            </label>
+
+            <label>
+              ID pago
+              <input id="editPaymentId" type="text" placeholder="payment_id" />
+            </label>
+
+            <label>
+              ID transacción
+              <input id="editTransactionId" type="text" placeholder="transaction_id" />
+            </label>
+
+            <label>
+              Reservado hasta
+              <input id="editReservedUntil" type="text" placeholder="2026-04-11T15:00:00.000Z" />
+            </label>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label style="display:block;">
+              Notas
+              <textarea id="editNotes" rows="3" placeholder="Notas internas"></textarea>
+            </label>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+            <button id="saveTicketBtn" class="primary-btn" type="button">Guardar cambios</button>
+            <button id="clearTicketFormBtn" class="ghost-btn" type="button">Limpiar formulario</button>
+          </div>
+        </div>
+
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
@@ -81,10 +153,6 @@
           Ingresa tu token para consultar la información.
         </p>
 
-        <!-- ======================= -->
-        <!-- 🎁 NUEVA SECCIÓN PREMIOS -->
-        <!-- ======================= -->
-
         <div style="margin-top: 40px;">
           <h3>Gestión de premios</h3>
 
@@ -92,12 +160,11 @@
             <input id="prizeTitle" placeholder="Título" />
             <input id="prizeDesc" placeholder="Descripción" />
             <input id="prizeImg" placeholder="URL Imagen" />
-            <button id="addPrizeBtn" class="primary-btn">Agregar premio</button>
+            <button id="addPrizeBtn" class="primary-btn" type="button">Agregar premio</button>
           </div>
 
           <div id="prizeList"></div>
         </div>
-
       </section>
     </main>
 
