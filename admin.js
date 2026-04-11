@@ -1,4 +1,4 @@
-const API_BASE = window.__API_BASE__ || 'https://TU-BACKEND.onrender.com';
+const API_BASE = window.__API_BASE__ || 'https://rifa-backend-xvti.onrender.com';
 
 const elements = {
   adminToken: document.getElementById('adminToken'),
