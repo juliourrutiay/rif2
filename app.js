@@ -224,18 +224,31 @@ async function loadPrizes() {
   const container = document.querySelector('.prizes-grid');
   if (!container) return;
 
-  const res = await fetch(`${API_BASE}/api/prizes`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/prizes`);
+    const data = await res.json();
 
-  container.innerHTML = (data.prizes || []).map(p => `
-    <article class="prize-card">
-      <img src="${p.image}">
-      <div>
-        <h3>${p.title}</h3>
-        <p>${p.description}</p>
-      </div>
-    </article>
-  `).join('');
+    if (!res.ok) throw new Error(data.error || 'No fue posible cargar los premios.');
+
+    const prizes = data.prizes || [];
+
+    if (!prizes.length) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = prizes.map(p => `
+      <article class="prize-card">
+        <img src="${p.image}" alt="${p.title}">
+        <div>
+          <h3>${p.title}</h3>
+          <p>${p.description}</p>
+        </div>
+      </article>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando premios:', error);
+  }
 }
 
 function setView(mode) {
