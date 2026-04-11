@@ -68,3 +68,49 @@ async function loadAdminData() {
 }
 
 elements.loadAdminBtn.addEventListener('click', loadAdminData);
+
+// 👉 AGREGA AL FINAL  [oai_citation:4‡admin.js](sediment://file_0000000052d471f59851b85824b2585b)
+
+async function loadPrizesAdmin() {
+  const res = await fetch(`${API_BASE}/api/prizes`);
+  const data = await res.json();
+
+  document.getElementById('prizeList').innerHTML = data.prizes.map(p => `
+    <div>
+      <b>${p.title}</b>
+      <button onclick="deletePrize(${p.id})">Eliminar</button>
+    </div>
+  `).join('');
+}
+
+async function addPrize() {
+  const token = elements.adminToken.value;
+
+  await fetch(`${API_BASE}/api/admin/prizes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-token': token
+    },
+    body: JSON.stringify({
+      title: document.getElementById('prizeTitle').value,
+      description: document.getElementById('prizeDesc').value,
+      image: document.getElementById('prizeImg').value
+    })
+  });
+
+  loadPrizesAdmin();
+}
+
+async function deletePrize(id) {
+  const token = elements.adminToken.value;
+
+  await fetch(`${API_BASE}/api/admin/prizes/${id}`, {
+    method: 'DELETE',
+    headers: { 'x-admin-token': token }
+  });
+
+  loadPrizesAdmin();
+}
+
+document.getElementById('addPrizeBtn').addEventListener('click', addPrize);
