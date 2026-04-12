@@ -36,6 +36,7 @@
             Cada número comprado es una forma concreta de acompañar, aportar y dar esperanza en un momento en que toda ayuda cuenta.
           </p>
           <div class="hero-tags">
+            <span>Reserva por transferencia</span>
             <span>Pago con Khipu</span>
             <span>Selección múltiple</span>
             <span>Registro de comprador</span>
@@ -52,8 +53,8 @@
             <span>Números disponibles para comprar</span>
           </article>
           <article class="stat-card">
-            <strong>1 aporte</strong>
-            <span>Tu participación ayuda directamente a esta causa</span>
+            <strong>2 opciones</strong>
+            <span>Puedes reservar por transferencia o pagar con Khipu</span>
           </article>
         </div>
       </section>
@@ -133,17 +134,20 @@
                 <strong id="ticketPrice">$2.000</strong>
               </div>
               <div>
-                <span>Total a pagar</span>
+                <span>Total</span>
                 <strong id="totalPrice">$0</strong>
               </div>
             </div>
 
             <p class="checkout-trust-text">
-              Pago seguro. Tus números quedarán asociados a tu nombre, celular y correo una vez completado el proceso.
+              Elige una de las dos opciones disponibles. Puedes reservar tus números por transferencia o pagar con Khipu.
             </p>
 
-            <button id="payBtn" type="submit" class="primary-btn">Continuar a pago</button>
-            <button id="restartPurchaseInlineBtn" type="button" class="ghost-btn" style="display:none;">Reiniciar compra</button>
+            <div class="checkout-actions-stack">
+              <button id="transferReserveBtn" type="button" class="primary-btn">Reservar y transferir</button>
+              <button id="payBtn" type="submit" class="ghost-btn">Pagar con Khipu</button>
+              <button id="restartPurchaseInlineBtn" type="button" class="ghost-btn" style="display:none;">Reiniciar compra</button>
+            </div>
 
             <p id="statusMessage" class="status-message">Selecciona uno o más números para continuar.</p>
           </form>
@@ -190,11 +194,60 @@
         </div>
       </div>
     </div>
-    
-<button id="floatingCheckoutBtn" class="floating-checkout-btn hidden" type="button">
-  Continuar a pago.
-</button>
-    
+
+    <div id="transferModal" class="payment-modal hidden">
+      <div class="payment-modal-card">
+        <span class="section-kicker">Reserva por transferencia</span>
+        <h3>Completa tu transferencia</h3>
+        <p>
+          Tus números han sido reservados temporalmente. Completa la transferencia y envía el comprobante dentro del plazo indicado.
+        </p>
+
+        <div class="summary-box summary-stack" style="margin-bottom: 18px;">
+          <div>
+            <span>Tiempo visible para enviar comprobante</span>
+            <strong id="transferCountdown">30:00</strong>
+          </div>
+          <div>
+            <span>Números reservados</span>
+            <strong id="transferReservedNumbers">-</strong>
+          </div>
+        </div>
+
+        <div class="transfer-block">
+          <span class="section-kicker">Transferencia tradicional</span>
+          <div class="transfer-data-card">
+            <p><strong>Titular:</strong> Julio URRUTIA</p>
+            <p><strong>RUT:</strong> 17.090.849-K</p>
+            <p><strong>Correo:</strong> urrutia.julio@icloud.com</p>
+            <p><strong>Tipo de cuenta:</strong> Cuenta Corriente</p>
+            <p><strong>Número de cuenta:</strong> 17200038940</p>
+            <p><strong>Banco:</strong> Banco Falabella</p>
+          </div>
+          <button id="copyTransferDataBtn" type="button" class="ghost-btn">Copiar datos</button>
+        </div>
+
+        <div class="transfer-block">
+          <span class="section-kicker">Transferir a través de contacto</span>
+          <div class="transfer-data-card">
+            <p><strong>Celular:</strong> +56987383719</p>
+          </div>
+        </div>
+
+        <p class="checkout-trust-text">
+          Debes enviar el comprobante de transferencia al Wssp +56987383719 dentro de los 30 minutos, de lo contrario, el número/s serán liberados y quedarán disponibles para su compra.
+        </p>
+
+        <div class="payment-modal-actions">
+          <button id="closeTransferModalBtn" type="button" class="ghost-btn">Entendido</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="floatingCheckoutBtn" class="floating-checkout-btn hidden" type="button">
+      Continuar con la reserva
+    </button>
+
     <script src="./app.js" type="module"></script>
   </body>
 </html>
