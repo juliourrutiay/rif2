@@ -32,6 +32,7 @@ const elements = {
   cancelledFlowModal: document.getElementById('cancelledFlowModal'),
   cancelledFlowCountdown: document.getElementById('cancelledFlowCountdown'),
   closeCancelledFlowModalBtn: document.getElementById('closeCancelledFlowModalBtn'),
+  restartPurchaseBtn: document.getElementById('restartPurchaseBtn'),
 };
 
 let countdownInterval = null;
@@ -85,6 +86,12 @@ function enablePayButton() {
     elements.payBtn.disabled = false;
     elements.payBtn.textContent = 'Continuar a pago';
   }
+}
+
+function clearFormFields() {
+  document.getElementById('name').value = '';
+  document.getElementById('phone').value = '';
+  document.getElementById('email').value = '';
 }
 
 function syncSummary() {
@@ -170,16 +177,26 @@ async function loadNumbers() {
   }
 }
 
+function stopReservationCountdown() {
+  clearInterval(countdownInterval);
+  countdownInterval = null;
+}
+
+function stopBlockedCountdown() {
+  clearInterval(blockedCountdownInterval);
+  blockedCountdownInterval = null;
+}
+
 function startCountdown(reservedUntil) {
   const end = new Date(reservedUntil).getTime();
 
-  clearInterval(countdownInterval);
+  stopReservationCountdown();
 
   countdownInterval = setInterval(() => {
     const diff = end - Date.now();
 
     if (diff <= 0) {
-      clearInterval(countdownInterval);
+      stopReservationCountdown();
       clearPendingPayment();
       window.location.reload();
       return;
@@ -214,13 +231,13 @@ function startBlockedPaymentCountdown(reservedUntil) {
   disablePayButton();
   openCancelledFlowModal();
 
-  clearInterval(blockedCountdownInterval);
+  stopBlockedCountdown();
 
   blockedCountdownInterval = setInterval(() => {
     const diff = end - Date.now();
 
     if (diff <= 0) {
-      clearInterval(blockedCountdownInterval);
+      stopBlockedCountdown();
       clearPendingPayment();
       closeCancelledFlowModal();
       window.location.reload();
@@ -246,12 +263,33 @@ function handleReturnStatus() {
   if (status === 'success') {
     clearPendingPayment();
     enablePayButton();
+    state.paymentBlockedUntil = null;
     setStatus(
       'Volviste desde Khipu. Estamos validando tu pago y actualizando tus números.',
       'success'
     );
     loadNumbers();
   }
+}
+
+function restartPurchaseFlow() {
+  stopReservationCountdown();
+  stopBlockedCountdown();
+  clearPendingPayment();
+  closeCancelledFlowModal();
+  closePaymentModal();
+
+  state.pendingPaymentUrl = null;
+  state.paymentBlockedUntil = null;
+  state.selected.clear();
+
+  clearFormFields();
+  enablePayButton();
+  renderGrid();
+  syncSummary();
+  loadNumbers();
+
+  setStatus('Ya puedes seleccionar otros números e iniciar un nuevo pago.', 'success');
 }
 
 async function handleCheckout(event) {
@@ -399,6 +437,10 @@ function bindEvents() {
 
   elements.closeCancelledFlowModalBtn.addEventListener('click', () => {
     closeCancelledFlowModal();
+  });
+
+  elements.restartPurchaseBtn.addEventListener('click', () => {
+    restartPurchaseFlow();
   });
 
   elements.cancelledFlowModal.addEventListener('click', (event) => {
