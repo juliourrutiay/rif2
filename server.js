@@ -12,7 +12,7 @@ const RAFFLE_TITLE = process.env.RAFFLE_TITLE || 'Rifa Verde';
 const RAFFLE_PRICE = Number(process.env.RAFFLE_PRICE || 2000);
 const RAFFLE_SIZE = Number(process.env.RAFFLE_SIZE || 500);
 const RESERVATION_MINUTES = Number(process.env.RESERVATION_MINUTES || 10);
-const KHIPU_BASE_URL = process.env.KHIPU_BASE_URL || 'https://payment-api.khipu.com';
+const KHIPU_API_BASE = process.env.KHIPU_API_BASE || 'https://khipu.com/api/2.0';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'cambiar-este-token';
 
 const supabase = createClient(
@@ -161,32 +161,33 @@ app.post('/api/payments/create', async (req, res) => {
     if (reserveError) throw reserveError;
 
     const notifyUrl = `${req.protocol}://${req.get('host')}/api/payments/webhook`;
-
     const expiresDate = addMinutes(new Date(), RESERVATION_MINUTES).toISOString();
 
-const paymentPayload = {
-  amount: RAFFLE_PRICE * numbers.length,
-  currency: 'CLP',
-  subject: `${RAFFLE_TITLE} - Números ${numbers.join(', ')}`,
-  body: `Compra de números para ${RAFFLE_TITLE}: ${numbers.join(', ')}`,
-  transaction_id: transactionId,
-  return_url: `${PUBLIC_FRONTEND_URL}/index.html?status=success`,
-  cancel_url: `${PUBLIC_FRONTEND_URL}/index.html?status=cancel`,
-  notify_url: notifyUrl,
-  notify_api_version: '3.0',
-  expires_date: expiresDate,
-  payer_name: payerName,
-  payer_email: payerEmail,
-  custom: JSON.stringify({ raffleId: RAFFLE_ID, numbers, payerPhone, payerRut }),
-};
+    const paymentPayload = {
+      amount: String(RAFFLE_PRICE * numbers.length),
+      currency: 'CLP',
+      subject: `${RAFFLE_TITLE} - Números ${numbers.join(', ')}`,
+      body: `Compra de números para ${RAFFLE_TITLE}: ${numbers.join(', ')}`,
+      transaction_id: transactionId,
+      return_url: `${PUBLIC_FRONTEND_URL}/index.html?status=success`,
+      cancel_url: `${PUBLIC_FRONTEND_URL}/index.html?status=cancel`,
+      notify_url: notifyUrl,
+      notify_api_version: '3.0',
+      expires_date: expiresDate,
+      payer_name: payerName,
+      payer_email: payerEmail,
+      custom: JSON.stringify({ raffleId: RAFFLE_ID, numbers, payerPhone, payerRut }),
+    };
 
-    const khipuResponse = await fetch(`${KHIPU_BASE_URL}/v3/payments`, {
+    const formBody = new URLSearchParams(paymentPayload);
+
+    const khipuResponse = await fetch(`${KHIPU_API_BASE}/payments`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.KHIPU_API_KEY,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': process.env.KHIPU_API_KEY || '',
       },
-      body: JSON.stringify(paymentPayload),
+      body: formBody.toString(),
     });
 
     const rawKhipu = await khipuResponse.text();
@@ -222,7 +223,7 @@ const paymentPayload = {
     await supabase
       .from('raffle_tickets')
       .update({
-        payment_id: khipuData.payment_id,
+        payment_id: khipuData.payment_id || null,
         payment_channel: 'khipu',
       })
       .eq('raffle_id', RAFFLE_ID)
@@ -250,8 +251,10 @@ app.post('/api/payments/webhook', async (req, res) => {
       return res.status(400).json({ error: 'Webhook sin payment_id.' });
     }
 
-    const verifyResponse = await fetch(`${KHIPU_BASE_URL}/v3/payments/${paymentId}`, {
-      headers: { 'x-api-key': process.env.KHIPU_API_KEY },
+    const verifyResponse = await fetch(`${KHIPU_API_BASE}/payments/${paymentId}`, {
+      headers: {
+        'Authorization': process.env.KHIPU_API_KEY || '',
+      },
     });
 
     const rawVerify = await verifyResponse.text();
