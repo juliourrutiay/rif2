@@ -143,7 +143,7 @@ function setCheckoutBlockedState(payText = 'Pago temporalmente bloqueado', trans
   }
 
   if (elements.transferReserveBtn) {
-    elements.transferReserveBtn.disabled = true;
+    elements.transferReserveBtn.disabled = false;
     elements.transferReserveBtn.textContent = transferText;
   }
 
