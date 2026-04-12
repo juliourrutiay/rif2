@@ -184,7 +184,14 @@ app.post('/api/payments/create', async (req, res) => {
       body: JSON.stringify(paymentPayload),
     });
 
-    const khipuData = await khipuResponse.json();
+    const rawKhipu = await khipuResponse.text();
+    let khipuData = {};
+
+    try {
+      khipuData = rawKhipu ? JSON.parse(rawKhipu) : {};
+    } catch (e) {
+      throw new Error(`Respuesta inválida de Khipu: ${rawKhipu}`);
+    }
 
     if (!khipuResponse.ok) {
       await supabase
@@ -242,7 +249,14 @@ app.post('/api/payments/webhook', async (req, res) => {
       headers: { 'x-api-key': process.env.KHIPU_API_KEY },
     });
 
-    const verifyData = await verifyResponse.json();
+    const rawVerify = await verifyResponse.text();
+    let verifyData = {};
+
+    try {
+      verifyData = rawVerify ? JSON.parse(rawVerify) : {};
+    } catch (e) {
+      throw new Error(`Respuesta inválida al verificar pago en Khipu: ${rawVerify}`);
+    }
 
     if (!verifyResponse.ok) {
       return res.status(400).json({
