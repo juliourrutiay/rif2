@@ -103,7 +103,13 @@ async function loadNumbers() {
     const response = await fetch(`${API_BASE}/api/numbers`);
     const result = await response.json();
 
-    if (!response.ok) throw new Error(result.error || 'No fue posible cargar los números.');
+    if (!response.ok) {
+  const detailText = result?.details
+    ? ` Detalle: ${JSON.stringify(result.details)}`
+    : '';
+
+  throw new Error((result.error || 'No fue posible iniciar el pago.') + detailText);
+}
 
     state.numbers = result.numbers || [];
     renderGrid();
