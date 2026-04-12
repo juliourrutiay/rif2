@@ -18,7 +18,7 @@ const state = {
   selected: new Set(),
   pendingPaymentUrl: null,
   paymentBlockedUntil: null,
-  activeFlow: null, // 'khipu' | 'transfer' | null
+  activeFlow: null,
 };
 
 const elements = {
@@ -53,6 +53,9 @@ const elements = {
   transferReservedNumbers: document.getElementById('transferReservedNumbers'),
   copyTransferDataBtn: document.getElementById('copyTransferDataBtn'),
   closeTransferModalBtn: document.getElementById('closeTransferModalBtn'),
+
+  successModal: document.getElementById('successModal'),
+  newPurchaseBtn: document.getElementById('newPurchaseBtn'),
 };
 
 let countdownInterval = null;
@@ -340,6 +343,14 @@ function closeTransferModal() {
   elements.transferModal.classList.add('hidden');
 }
 
+function openSuccessModal() {
+  elements.successModal.classList.remove('hidden');
+}
+
+function closeSuccessModal() {
+  elements.successModal.classList.add('hidden');
+}
+
 function startBlockedPaymentCountdown(reservedUntil) {
   const end = new Date(reservedUntil).getTime();
   state.paymentBlockedUntil = reservedUntil;
@@ -424,16 +435,25 @@ function handleReturnStatus() {
 
   if (status === 'success') {
     clearPendingPayment();
+    clearPendingTransfer();
+    stopReservationCountdown();
+    stopBlockedCountdown();
+    stopTransferDisplayCountdown();
     resetCheckoutActions();
+
     state.paymentBlockedUntil = null;
     state.activeFlow = null;
+    state.pendingPaymentUrl = null;
+    state.selected.clear();
+
+    clearFormFields();
     renderGrid();
     syncSummary();
-    setStatus(
-      'Volviste desde Khipu. Estamos validando tu pago y actualizando tus números.',
-      'success'
-    );
     loadNumbers();
+    openSuccessModal();
+
+    const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+    window.history.replaceState({}, '', cleanUrl);
   }
 }
 
@@ -470,6 +490,7 @@ function restartPurchaseFlow() {
   closeCancelledFlowModal();
   closePaymentModal();
   closeTransferModal();
+  closeSuccessModal();
 
   state.pendingPaymentUrl = null;
   state.paymentBlockedUntil = null;
@@ -483,6 +504,9 @@ function restartPurchaseFlow() {
   loadNumbers();
 
   setStatus('Ya puedes seleccionar otros números e iniciar un nuevo proceso.', 'success');
+
+  const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+  window.history.replaceState({}, '', cleanUrl);
 }
 
 function hardResetPurchaseView() {
@@ -494,6 +518,7 @@ function hardResetPurchaseView() {
   closeCancelledFlowModal();
   closePaymentModal();
   closeTransferModal();
+  closeSuccessModal();
 
   state.pendingPaymentUrl = null;
   state.paymentBlockedUntil = null;
@@ -772,6 +797,18 @@ function bindEvents() {
     elements.transferModal.addEventListener('click', (event) => {
       if (event.target === elements.transferModal) {
         closeTransferModal();
+      }
+    });
+  }
+
+  if (elements.newPurchaseBtn) {
+    elements.newPurchaseBtn.addEventListener('click', restartPurchaseFlow);
+  }
+
+  if (elements.successModal) {
+    elements.successModal.addEventListener('click', (event) => {
+      if (event.target === elements.successModal) {
+        closeSuccessModal();
       }
     });
   }
