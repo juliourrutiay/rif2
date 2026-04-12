@@ -104,12 +104,12 @@ async function loadNumbers() {
     const result = await response.json();
 
     if (!response.ok) {
-  const detailText = result?.details
-    ? ` Detalle: ${JSON.stringify(result.details)}`
-    : '';
+      const detailText = result?.details
+        ? ` Detalle: ${JSON.stringify(result.details)}`
+        : '';
 
-  throw new Error((result.error || 'No fue posible iniciar el pago.') + detailText);
-}
+      throw new Error((result.error || 'No fue posible cargar los números.') + detailText);
+    }
 
     state.numbers = result.numbers || [];
     renderGrid();
@@ -192,13 +192,31 @@ async function handleCheckout(event) {
       throw new Error('El servidor no devolvió una respuesta JSON válida.');
     }
 
-    if (!response.ok) throw new Error(result.error || 'No fue posible iniciar el pago.');
+    if (!response.ok) {
+      const detailText = result?.details
+        ? ` Detalle: ${JSON.stringify(result.details)}`
+        : '';
+
+      throw new Error((result.error || 'No fue posible iniciar el pago.') + detailText);
+    }
 
     if (result.reserved_until) {
       startCountdown(result.reserved_until);
     }
 
-    if (!result.payment_url) throw new Error('El backend no devolvió la URL de pago.');
+    if (!result.payment_url) {
+      throw new Error('El backend no devolvió la URL de pago.');
+    }
+
+    const confirmed = window.confirm(
+      'Importante: el pago debe realizarse dentro de los próximos 10 minutos. ' +
+      'Si no se completa dentro de ese plazo, el proceso se anulará y los números volverán a estar disponibles.'
+    );
+
+    if (!confirmed) {
+      setStatus('Pago cancelado antes de abrir Khipu.', 'warning');
+      return;
+    }
 
     window.location.href = result.payment_url;
   } catch (error) {
