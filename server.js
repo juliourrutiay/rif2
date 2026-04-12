@@ -12,7 +12,7 @@ const RAFFLE_TITLE = process.env.RAFFLE_TITLE || 'Rifa Verde';
 const RAFFLE_PRICE = Number(process.env.RAFFLE_PRICE || 2000);
 const RAFFLE_SIZE = Number(process.env.RAFFLE_SIZE || 500);
 const RESERVATION_MINUTES = Number(process.env.RESERVATION_MINUTES || 10);
-const KHIPU_API_BASE = process.env.KHIPU_API_BASE || 'https://khipu.com/api/2.0';
+const KHIPU_BASE_URL = process.env.KHIPU_BASE_URL || 'https://payment-api.khipu.com';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'cambiar-este-token';
 
 const supabase = createClient(
@@ -164,7 +164,7 @@ app.post('/api/payments/create', async (req, res) => {
     const expiresDate = addMinutes(new Date(), RESERVATION_MINUTES).toISOString();
 
     const paymentPayload = {
-      amount: String(RAFFLE_PRICE * numbers.length),
+      amount: RAFFLE_PRICE * numbers.length,
       currency: 'CLP',
       subject: `${RAFFLE_TITLE} - Números ${numbers.join(', ')}`,
       body: `Compra de números para ${RAFFLE_TITLE}: ${numbers.join(', ')}`,
@@ -179,15 +179,13 @@ app.post('/api/payments/create', async (req, res) => {
       custom: JSON.stringify({ raffleId: RAFFLE_ID, numbers, payerPhone, payerRut }),
     };
 
-    const formBody = new URLSearchParams(paymentPayload);
-
-    const khipuResponse = await fetch(`${KHIPU_API_BASE}/payments`, {
+    const khipuResponse = await fetch(`${KHIPU_BASE_URL}/v3/payments`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': process.env.KHIPU_API_KEY || '',
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.KHIPU_API_KEY || '',
       },
-      body: formBody.toString(),
+      body: JSON.stringify(paymentPayload),
     });
 
     const rawKhipu = await khipuResponse.text();
@@ -251,9 +249,9 @@ app.post('/api/payments/webhook', async (req, res) => {
       return res.status(400).json({ error: 'Webhook sin payment_id.' });
     }
 
-    const verifyResponse = await fetch(`${KHIPU_API_BASE}/payments/${paymentId}`, {
+    const verifyResponse = await fetch(`${KHIPU_BASE_URL}/v3/payments/${paymentId}`, {
       headers: {
-        'Authorization': process.env.KHIPU_API_KEY || '',
+        'x-api-key': process.env.KHIPU_API_KEY || '',
       },
     });
 
