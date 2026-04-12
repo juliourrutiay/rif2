@@ -171,6 +171,26 @@
       </section>
     </main>
 
+    <div id="paymentModal" class="payment-modal hidden">
+      <div class="payment-modal-card">
+        <span class="section-kicker">Importante</span>
+        <h3>Confirma antes de ir a pagar</h3>
+        <p>
+          Debes completar el pago dentro de los próximos <strong>10 minutos</strong>.
+          Si no se completa dentro de ese plazo, el proceso se anulará y los números volverán a estar disponibles.
+        </p>
+        <p>
+          Si cancelas el proceso antes de los 10 minutos, los números seguirán bloqueados durante ese mismo tiempo
+          y luego volverán a quedar disponibles para ser comprados.
+        </p>
+
+        <div class="payment-modal-actions">
+          <button id="cancelPaymentModalBtn" type="button" class="ghost-btn">Cancelar</button>
+          <button id="confirmPaymentModalBtn" type="button" class="primary-btn">Continuar a pago</button>
+        </div>
+      </div>
+    </div>
+
     <script src="./app.js" type="module"></script>
   </body>
 </html>
