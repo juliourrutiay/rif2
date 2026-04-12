@@ -444,15 +444,25 @@ elements.cancelPaymentModalBtn.addEventListener('click', () => {
     window.location.href = paymentUrl;
   });
 
-  elements.paymentModal.addEventListener('click', (event) => {
-    if (event.target === elements.paymentModal) {
-      closePaymentModal();
-      setStatus(
-        'Pago cancelado antes de abrir Khipu. Los números seguirán reservados hasta completar los 10 minutos.',
-        'warning'
-      );
-    }
-  });
+elements.paymentModal.addEventListener('click', (event) => {
+  if (event.target === elements.paymentModal) {
+    closePaymentModal();
+
+    stopReservationCountdown();
+    state.pendingPaymentUrl = null;
+    state.selected.clear();
+    clearFormFields();
+    enablePayButton();
+    renderGrid();
+    syncSummary();
+    loadNumbers();
+
+    setStatus(
+      'Proceso reiniciado. Tus números anteriores seguirán reservados hasta completar el tiempo, pero ya puedes elegir otros números disponibles.',
+      'warning'
+    );
+  }
+});
 
   elements.closeCancelledFlowModalBtn.addEventListener('click', () => {
     closeCancelledFlowModal();
