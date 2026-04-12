@@ -4,7 +4,14 @@ const RAFFLE_SIZE = 500;
 const PAYMENT_STORAGE_KEY = 'rifaPendingPayment';
 const TRANSFER_STORAGE_KEY = 'rifaPendingTransfer';
 
-const TRANSFER_COPY_VALUE = 'Julio URRUTIA 17.090.849-K urrutia.julio@icloud.com Cuenta Corriente 17200038940 Banco Falabella';
+const TRANSFER_COPY_VALUE = [
+  'Julio URRUTIA',
+  '17.090.849-K',
+  'urrutia.julio@icloud.com',
+  'Cuenta Corriente',
+  '17200038940',
+  'Banco Falabella',
+].join('\n');
 
 const state = {
   numbers: [],
