@@ -1,6 +1,6 @@
 const API_BASE = window.__API_BASE__ || 'https://rifa-backend-xvti.onrender.com';
 const RAFFLE_PRICE = 2000;
-const RAFFLE_SIZE = 100;
+const RAFFLE_SIZE = 500;
 
 const state = {
   numbers: [],
