@@ -299,6 +299,24 @@ function restartPurchaseFlow() {
   setStatus('Ya puedes seleccionar otros números e iniciar un nuevo pago.', 'success');
 }
 
+function hardResetPurchaseView() {
+  stopReservationCountdown();
+  stopBlockedCountdown();
+  clearPendingPayment();
+  closeCancelledFlowModal();
+  closePaymentModal();
+
+  state.pendingPaymentUrl = null;
+  state.paymentBlockedUntil = null;
+  state.selected.clear();
+
+  clearFormFields();
+  enablePayButton();
+
+  const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+  window.location.href = cleanUrl;
+}
+
 async function handleCheckout(event) {
   event.preventDefault();
 
@@ -419,23 +437,9 @@ function bindEvents() {
 
   elements.checkoutForm.addEventListener('submit', handleCheckout);
 
-elements.cancelPaymentModalBtn.addEventListener('click', () => {
-  closePaymentModal();
-
-  stopReservationCountdown();
-  state.pendingPaymentUrl = null;
-  state.selected.clear();
-  clearFormFields();
-  enablePayButton();
-  renderGrid();
-  syncSummary();
-  loadNumbers();
-
-  setStatus(
-    'Proceso reiniciado. Tus números anteriores seguirán reservados hasta completar el tiempo, pero ya puedes elegir otros números disponibles.',
-    'warning'
-  );
-});
+  elements.cancelPaymentModalBtn.addEventListener('click', () => {
+    hardResetPurchaseView();
+  });
 
   elements.confirmPaymentModalBtn.addEventListener('click', () => {
     if (!state.pendingPaymentUrl) return;
@@ -444,25 +448,11 @@ elements.cancelPaymentModalBtn.addEventListener('click', () => {
     window.location.href = paymentUrl;
   });
 
-elements.paymentModal.addEventListener('click', (event) => {
-  if (event.target === elements.paymentModal) {
-    closePaymentModal();
-
-    stopReservationCountdown();
-    state.pendingPaymentUrl = null;
-    state.selected.clear();
-    clearFormFields();
-    enablePayButton();
-    renderGrid();
-    syncSummary();
-    loadNumbers();
-
-    setStatus(
-      'Proceso reiniciado. Tus números anteriores seguirán reservados hasta completar el tiempo, pero ya puedes elegir otros números disponibles.',
-      'warning'
-    );
-  }
-});
+  elements.paymentModal.addEventListener('click', (event) => {
+    if (event.target === elements.paymentModal) {
+      hardResetPurchaseView();
+    }
+  });
 
   elements.closeCancelledFlowModalBtn.addEventListener('click', () => {
     closeCancelledFlowModal();
