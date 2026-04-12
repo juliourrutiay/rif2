@@ -191,6 +191,25 @@
       </div>
     </div>
 
+    <div id="cancelledFlowModal" class="payment-modal hidden">
+      <div class="payment-modal-card">
+        <span class="section-kicker">Proceso cancelado</span>
+        <h3>El flujo de pago fue cancelado</h3>
+        <p>
+          Tus números continúan bloqueados temporalmente y no podrás volver a iniciar el pago
+          hasta que finalice el tiempo de reserva.
+        </p>
+        <p>
+          Tiempo restante para liberar los números:
+          <strong id="cancelledFlowCountdown">--:--</strong>
+        </p>
+
+        <div class="payment-modal-actions">
+          <button id="closeCancelledFlowModalBtn" type="button" class="ghost-btn">Entendido</button>
+        </div>
+      </div>
+    </div>
+
     <script src="./app.js" type="module"></script>
   </body>
 </html>
