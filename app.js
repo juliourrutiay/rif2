@@ -178,6 +178,10 @@ function clearFormFields() {
   document.getElementById('email').value = '';
 }
 
+function isSelectionBlocked() {
+  return !!state.paymentBlockedUntil;
+}
+
 function syncSummary() {
   const selected = Array.from(state.selected).sort((a, b) => a - b);
   const availableCount = state.numbers.filter((ticket) => ticket.status === 'available').length;
@@ -206,6 +210,7 @@ function syncSummary() {
 
 function renderGrid() {
   elements.grid.innerHTML = '';
+  const selectionBlocked = isSelectionBlocked();
 
   state.numbers.forEach((ticket) => {
     const button = document.createElement('button');
@@ -217,7 +222,7 @@ function renderGrid() {
       button.classList.add('selected');
     }
 
-    if (ticket.status !== 'available') {
+    if (ticket.status !== 'available' || selectionBlocked) {
       button.disabled = true;
     }
 
@@ -227,6 +232,17 @@ function renderGrid() {
 }
 
 function toggleNumber(number) {
+  if (isSelectionBlocked()) {
+    if (state.activeFlow === 'transfer') {
+      setStatus('Tienes una transferencia en curso. Reinicia la compra si deseas seleccionar otros números.', 'warning');
+    } else if (state.activeFlow === 'khipu') {
+      setStatus('Tienes un pago en curso. Reinicia la compra si deseas seleccionar otros números.', 'warning');
+    } else {
+      setStatus('Hay un proceso activo. Reinicia la compra para volver a seleccionar números.', 'warning');
+    }
+    return;
+  }
+
   const ticket = state.numbers.find((item) => item.number === number);
   if (!ticket || ticket.status !== 'available') return;
 
@@ -331,6 +347,8 @@ function startBlockedPaymentCountdown(reservedUntil) {
 
   setCheckoutBlockedState('Pago temporalmente bloqueado', 'Reserva temporalmente bloqueada');
   openCancelledFlowModal();
+  renderGrid();
+  syncSummary();
 
   stopBlockedCountdown();
 
@@ -364,6 +382,8 @@ function startTransferFlow({ reservedUntil, displayUntil, numbers }) {
   openTransferModal();
   startReservationCountdown(reservedUntil);
   startTransferDisplayCountdown(displayUntil);
+  renderGrid();
+  syncSummary();
 }
 
 function startTransferDisplayCountdown(displayUntil) {
@@ -407,6 +427,8 @@ function handleReturnStatus() {
     resetCheckoutActions();
     state.paymentBlockedUntil = null;
     state.activeFlow = null;
+    renderGrid();
+    syncSummary();
     setStatus(
       'Volviste desde Khipu. Estamos validando tu pago y actualizando tus números.',
       'success'
