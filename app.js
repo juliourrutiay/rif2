@@ -1,11 +1,13 @@
 const API_BASE = window.__API_BASE__ || 'https://rifa-backend-xvti.onrender.com';
 const RAFFLE_PRICE = 2000;
 const RAFFLE_SIZE = 500;
+const PAYMENT_STORAGE_KEY = 'rifaPendingPayment';
 
 const state = {
   numbers: [],
   selected: new Set(),
   pendingPaymentUrl: null,
+  paymentBlockedUntil: null,
 };
 
 const elements = {
@@ -21,12 +23,19 @@ const elements = {
   clearSelectionBtn: document.getElementById('clearSelectionBtn'),
   checkoutForm: document.getElementById('checkoutForm'),
   statusMessage: document.getElementById('statusMessage'),
+  payBtn: document.getElementById('payBtn'),
+
   paymentModal: document.getElementById('paymentModal'),
   confirmPaymentModalBtn: document.getElementById('confirmPaymentModalBtn'),
   cancelPaymentModalBtn: document.getElementById('cancelPaymentModalBtn'),
+
+  cancelledFlowModal: document.getElementById('cancelledFlowModal'),
+  cancelledFlowCountdown: document.getElementById('cancelledFlowCountdown'),
+  closeCancelledFlowModalBtn: document.getElementById('closeCancelledFlowModalBtn'),
 };
 
 let countdownInterval = null;
+let blockedCountdownInterval = null;
 
 function money(value) {
   return new Intl.NumberFormat('es-CL', {
@@ -39,6 +48,43 @@ function money(value) {
 function setStatus(message, type = '') {
   elements.statusMessage.textContent = message;
   elements.statusMessage.className = `status-message ${type}`.trim();
+}
+
+function formatCountdown(diffMs) {
+  const min = Math.floor(diffMs / 60000);
+  const sec = Math.floor((diffMs % 60000) / 1000);
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+function savePendingPayment(data) {
+  localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(data));
+}
+
+function getPendingPayment() {
+  try {
+    const raw = localStorage.getItem(PAYMENT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingPayment() {
+  localStorage.removeItem(PAYMENT_STORAGE_KEY);
+}
+
+function disablePayButton() {
+  if (elements.payBtn) {
+    elements.payBtn.disabled = true;
+    elements.payBtn.textContent = 'Pago temporalmente bloqueado';
+  }
+}
+
+function enablePayButton() {
+  if (elements.payBtn) {
+    elements.payBtn.disabled = false;
+    elements.payBtn.textContent = 'Continuar a pago';
+  }
 }
 
 function syncSummary() {
@@ -134,22 +180,12 @@ function startCountdown(reservedUntil) {
 
     if (diff <= 0) {
       clearInterval(countdownInterval);
-
-      state.selected.clear();
-      document.getElementById('name').value = '';
-      document.getElementById('phone').value = '';
-      document.getElementById('email').value = '';
-      syncSummary();
-      loadNumbers();
-
-      setStatus('⛔ Tiempo expirado. Números liberados.', 'error');
+      clearPendingPayment();
+      window.location.reload();
       return;
     }
 
-    const min = Math.floor(diff / 60000);
-    const sec = Math.floor((diff % 60000) / 1000);
-
-    setStatus(`⏳ Reserva: ${min}:${sec.toString().padStart(2, '0')}`, 'warning');
+    setStatus(`⏳ Reserva: ${formatCountdown(diff)}`, 'warning');
   }, 1000);
 }
 
@@ -163,18 +199,53 @@ function closePaymentModal() {
   elements.paymentModal.classList.add('hidden');
 }
 
+function openCancelledFlowModal() {
+  elements.cancelledFlowModal.classList.remove('hidden');
+}
+
+function closeCancelledFlowModal() {
+  elements.cancelledFlowModal.classList.add('hidden');
+}
+
+function startBlockedPaymentCountdown(reservedUntil) {
+  const end = new Date(reservedUntil).getTime();
+  state.paymentBlockedUntil = reservedUntil;
+
+  disablePayButton();
+  openCancelledFlowModal();
+
+  clearInterval(blockedCountdownInterval);
+
+  blockedCountdownInterval = setInterval(() => {
+    const diff = end - Date.now();
+
+    if (diff <= 0) {
+      clearInterval(blockedCountdownInterval);
+      clearPendingPayment();
+      closeCancelledFlowModal();
+      window.location.reload();
+      return;
+    }
+
+    const timeText = formatCountdown(diff);
+    elements.cancelledFlowCountdown.textContent = timeText;
+    setStatus(`⏳ Pago bloqueado temporalmente. Tiempo restante: ${timeText}`, 'warning');
+  }, 1000);
+}
+
 function handleReturnStatus() {
   const params = new URLSearchParams(window.location.search);
   const status = params.get('status');
+  const pendingPayment = getPendingPayment();
 
-  if (status === 'cancel') {
-    setStatus(
-      'Pago cancelado. Tus números seguirán bloqueados hasta completar los 10 minutos de reserva y luego volverán a estar disponibles.',
-      'warning'
-    );
+  if (status === 'cancel' && pendingPayment?.reservedUntil) {
+    startBlockedPaymentCountdown(pendingPayment.reservedUntil);
+    startCountdown(pendingPayment.reservedUntil);
   }
 
   if (status === 'success') {
+    clearPendingPayment();
+    enablePayButton();
     setStatus(
       'Volviste desde Khipu. Estamos validando tu pago y actualizando tus números.',
       'success'
@@ -185,6 +256,11 @@ function handleReturnStatus() {
 
 async function handleCheckout(event) {
   event.preventDefault();
+
+  if (state.paymentBlockedUntil) {
+    setStatus('El pago está temporalmente bloqueado hasta que termine la reserva actual.', 'warning');
+    return;
+  }
 
   const numbers = Array.from(state.selected).sort((a, b) => a - b);
   const payerName = document.getElementById('name').value.trim();
@@ -236,6 +312,12 @@ async function handleCheckout(event) {
 
     if (result.reserved_until) {
       startCountdown(result.reserved_until);
+
+      savePendingPayment({
+        numbers,
+        reservedUntil: result.reserved_until,
+        paymentUrl: result.payment_url,
+      });
     }
 
     if (!result.payment_url) {
@@ -312,6 +394,16 @@ function bindEvents() {
         'Pago cancelado antes de abrir Khipu. Los números seguirán reservados hasta completar los 10 minutos.',
         'warning'
       );
+    }
+  });
+
+  elements.closeCancelledFlowModalBtn.addEventListener('click', () => {
+    closeCancelledFlowModal();
+  });
+
+  elements.cancelledFlowModal.addEventListener('click', (event) => {
+    if (event.target === elements.cancelledFlowModal) {
+      closeCancelledFlowModal();
     }
   });
 }
