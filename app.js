@@ -176,7 +176,16 @@ async function handleCheckout(event) {
       }),
     });
 
-    const result = await response.json();
+    const rawText = await response.text();
+    let result = {};
+
+    try {
+      result = rawText ? JSON.parse(rawText) : {};
+    } catch (e) {
+      console.error('Respuesta no JSON:', rawText);
+      throw new Error('El servidor no devolvió una respuesta JSON válida.');
+    }
+
     if (!response.ok) throw new Error(result.error || 'No fue posible iniciar el pago.');
 
     if (result.reserved_until) {
