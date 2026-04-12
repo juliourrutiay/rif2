@@ -562,6 +562,12 @@ async function handleCheckout(event) {
 }
 
 async function handleTransferReservation() {
+  if (state.paymentBlockedUntil && state.activeFlow === 'transfer') {
+    openTransferModal();
+    setStatus('Transferencia en curso. Revisa nuevamente los datos y el tiempo restante.', 'warning');
+    return;
+  }
+
   if (state.paymentBlockedUntil) {
     setStatus('Hay un proceso activo. Reinicia la compra si deseas comenzar uno nuevo.', 'warning');
     return;
