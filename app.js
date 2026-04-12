@@ -24,6 +24,7 @@ const elements = {
   checkoutForm: document.getElementById('checkoutForm'),
   statusMessage: document.getElementById('statusMessage'),
   payBtn: document.getElementById('payBtn'),
+  restartPurchaseInlineBtn: document.getElementById('restartPurchaseInlineBtn'),
 
   paymentModal: document.getElementById('paymentModal'),
   confirmPaymentModalBtn: document.getElementById('confirmPaymentModalBtn'),
@@ -79,12 +80,18 @@ function disablePayButton() {
     elements.payBtn.disabled = true;
     elements.payBtn.textContent = 'Pago temporalmente bloqueado';
   }
+  if (elements.restartPurchaseInlineBtn) {
+    elements.restartPurchaseInlineBtn.style.display = 'inline-flex';
+  }
 }
 
 function enablePayButton() {
   if (elements.payBtn) {
     elements.payBtn.disabled = false;
     elements.payBtn.textContent = 'Continuar a pago';
+  }
+  if (elements.restartPurchaseInlineBtn) {
+    elements.restartPurchaseInlineBtn.style.display = 'none';
   }
 }
 
@@ -373,6 +380,8 @@ async function loadPrizes() {
   if (!container) return;
 
   try {
+    container.innerHTML = '';
+
     const res = await fetch(`${API_BASE}/api/prizes`);
     const data = await res.json();
 
@@ -439,9 +448,11 @@ function bindEvents() {
     closeCancelledFlowModal();
   });
 
-  elements.restartPurchaseBtn.addEventListener('click', () => {
-    restartPurchaseFlow();
-  });
+  elements.restartPurchaseBtn.addEventListener('click', restartPurchaseFlow);
+
+  if (elements.restartPurchaseInlineBtn) {
+    elements.restartPurchaseInlineBtn.addEventListener('click', restartPurchaseFlow);
+  }
 
   elements.cancelledFlowModal.addEventListener('click', (event) => {
     if (event.target === elements.cancelledFlowModal) {
