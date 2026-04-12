@@ -162,18 +162,23 @@ app.post('/api/payments/create', async (req, res) => {
 
     const notifyUrl = `${req.protocol}://${req.get('host')}/api/payments/webhook`;
 
-    const paymentPayload = {
-      amount: RAFFLE_PRICE * numbers.length,
-      currency: 'CLP',
-      subject: `${RAFFLE_TITLE} - Números ${numbers.join(', ')}`,
-      transaction_id: transactionId,
-      return_url: `${PUBLIC_FRONTEND_URL}/index.html?status=success`,
-      cancel_url: `${PUBLIC_FRONTEND_URL}/index.html?status=cancel`,
-      notify_url: notifyUrl,
-      payer_name: payerName,
-      payer_email: payerEmail,
-      custom: JSON.stringify({ raffleId: RAFFLE_ID, numbers, payerPhone, payerRut }),
-    };
+    const expiresDate = addMinutes(new Date(), RESERVATION_MINUTES).toISOString();
+
+const paymentPayload = {
+  amount: RAFFLE_PRICE * numbers.length,
+  currency: 'CLP',
+  subject: `${RAFFLE_TITLE} - Números ${numbers.join(', ')}`,
+  body: `Compra de números para ${RAFFLE_TITLE}: ${numbers.join(', ')}`,
+  transaction_id: transactionId,
+  return_url: `${PUBLIC_FRONTEND_URL}/index.html?status=success`,
+  cancel_url: `${PUBLIC_FRONTEND_URL}/index.html?status=cancel`,
+  notify_url: notifyUrl,
+  notify_api_version: '3.0',
+  expires_date: expiresDate,
+  payer_name: payerName,
+  payer_email: payerEmail,
+  custom: JSON.stringify({ raffleId: RAFFLE_ID, numbers, payerPhone, payerRut }),
+};
 
     const khipuResponse = await fetch(`${KHIPU_BASE_URL}/v3/payments`, {
       method: 'POST',
