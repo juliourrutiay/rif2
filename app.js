@@ -25,6 +25,7 @@ const elements = {
   statusMessage: document.getElementById('statusMessage'),
   payBtn: document.getElementById('payBtn'),
   restartPurchaseInlineBtn: document.getElementById('restartPurchaseInlineBtn'),
+  floatingCheckoutBtn: document.getElementById('floatingCheckoutBtn'),
 
   paymentModal: document.getElementById('paymentModal'),
   confirmPaymentModalBtn: document.getElementById('confirmPaymentModalBtn'),
@@ -75,6 +76,30 @@ function clearPendingPayment() {
   localStorage.removeItem(PAYMENT_STORAGE_KEY);
 }
 
+function isCheckoutVisible() {
+  const checkout = document.getElementById('checkout');
+  if (!checkout) return false;
+
+  const rect = checkout.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+  return rect.top < viewportHeight * 0.85 && rect.bottom > 80;
+}
+
+function updateFloatingCheckoutButton() {
+  if (!elements.floatingCheckoutBtn) return;
+
+  const hasSelection = state.selected.size > 0;
+  const checkoutVisible = isCheckoutVisible();
+  const blocked = !!state.paymentBlockedUntil;
+
+  if (hasSelection && !checkoutVisible && !blocked) {
+    elements.floatingCheckoutBtn.classList.remove('hidden');
+  } else {
+    elements.floatingCheckoutBtn.classList.add('hidden');
+  }
+}
+
 function disablePayButton() {
   if (elements.payBtn) {
     elements.payBtn.disabled = true;
@@ -83,6 +108,7 @@ function disablePayButton() {
   if (elements.restartPurchaseInlineBtn) {
     elements.restartPurchaseInlineBtn.style.display = 'inline-flex';
   }
+  updateFloatingCheckoutButton();
 }
 
 function enablePayButton() {
@@ -93,6 +119,7 @@ function enablePayButton() {
   if (elements.restartPurchaseInlineBtn) {
     elements.restartPurchaseInlineBtn.style.display = 'none';
   }
+  updateFloatingCheckoutButton();
 }
 
 function clearFormFields() {
@@ -123,6 +150,8 @@ function syncSummary() {
   if (!selected.length) {
     setStatus('Selecciona uno o más números para continuar.');
   }
+
+  updateFloatingCheckoutButton();
 }
 
 function renderGrid() {
@@ -463,6 +492,18 @@ function bindEvents() {
   if (elements.restartPurchaseInlineBtn) {
     elements.restartPurchaseInlineBtn.addEventListener('click', restartPurchaseFlow);
   }
+
+  if (elements.floatingCheckoutBtn) {
+    elements.floatingCheckoutBtn.addEventListener('click', () => {
+      const checkout = document.getElementById('checkout');
+      if (!checkout) return;
+
+      checkout.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  window.addEventListener('scroll', updateFloatingCheckoutButton);
+  window.addEventListener('resize', updateFloatingCheckoutButton);
 
   elements.cancelledFlowModal.addEventListener('click', (event) => {
     if (event.target === elements.cancelledFlowModal) {
