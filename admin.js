@@ -14,6 +14,7 @@ const elements = {
   selectAllBtn: document.getElementById('selectAllBtn'),
   clearSelectedBtn: document.getElementById('clearSelectedBtn'),
   bulkEditBtn: document.getElementById('bulkEditBtn'),
+  bulkPaidBtn: document.getElementById('bulkPaidBtn'),
   bulkReleaseBtn: document.getElementById('bulkReleaseBtn'),
   bulkEditor: document.getElementById('bulkEditor'),
   bulkStatus: document.getElementById('bulkStatus'),
@@ -286,6 +287,49 @@ async function applyBulkEdit() {
     setStatus(`Se actualizaron ${numbers.length} número(s) correctamente.`, 'success');
   } catch (error) {
     setStatus(error.message || 'Error en edición masiva.', 'error');
+  }
+}
+
+async function markSelectedAsPaid() {
+  const token = getToken();
+  if (!token) {
+    setStatus('Debes ingresar el token administrador.', 'warning');
+    return;
+  }
+
+  const numbers = Array.from(selectedNumbers);
+  if (!numbers.length) {
+    setStatus('Debes seleccionar al menos un número.', 'warning');
+    return;
+  }
+
+  try {
+    for (const number of numbers) {
+      const ticket = currentTickets.find((row) => row.number === number);
+
+      const response = await fetch(`${API_BASE}/api/admin/update-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+        },
+        body: JSON.stringify({
+          number,
+          data: {
+            status: 'paid',
+            payment_channel: ticket?.payment_channel || 'manual',
+          },
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `No fue posible marcar como pagado el número ${number}.`);
+    }
+
+    await loadAdminData();
+    setStatus(`Se marcaron como pagados ${numbers.length} número(s).`, 'success');
+  } catch (error) {
+    setStatus(error.message || 'Error al marcar seleccionados como pagados.', 'error');
   }
 }
 
@@ -574,6 +618,7 @@ elements.loadAdminBtn.addEventListener('click', loadAdminData);
 elements.selectAllBtn.addEventListener('click', selectAllVisible);
 elements.clearSelectedBtn.addEventListener('click', clearSelected);
 elements.bulkEditBtn.addEventListener('click', toggleBulkEditor);
+elements.bulkPaidBtn.addEventListener('click', markSelectedAsPaid);
 elements.bulkReleaseBtn.addEventListener('click', releaseSelectedNumbers);
 elements.applyBulkBtn.addEventListener('click', applyBulkEdit);
 elements.addPrizeBtn.addEventListener('click', savePrize);
