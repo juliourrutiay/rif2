@@ -6,12 +6,14 @@ import { createClient } from '@supabase/supabase-js';
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:5500';
-const PUBLIC_FRONTEND_URL = process.env.PUBLIC_FRONTEND_URL || FRONTEND_URL;
+const PUBLIC_FRONTEND_URL = (process.env.PUBLIC_FRONTEND_URL || FRONTEND_URL).replace(/\/+$/, '');
 const RAFFLE_ID = process.env.RAFFLE_ID || 'rifa-verde';
 const RAFFLE_TITLE = process.env.RAFFLE_TITLE || 'Rifa Verde';
 const RAFFLE_PRICE = Number(process.env.RAFFLE_PRICE || 2000);
 const RAFFLE_SIZE = Number(process.env.RAFFLE_SIZE || 500);
 const RESERVATION_MINUTES = Number(process.env.RESERVATION_MINUTES || 10);
+const TRANSFER_RESERVATION_MINUTES = Number(process.env.TRANSFER_RESERVATION_MINUTES || 45);
+const TRANSFER_DISPLAY_MINUTES = Number(process.env.TRANSFER_DISPLAY_MINUTES || 30);
 const KHIPU_BASE_URL = process.env.KHIPU_BASE_URL || 'https://payment-api.khipu.com';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'cambiar-este-token';
 
@@ -83,6 +85,24 @@ async function ensureRaffleNumbers(size) {
     .upsert(rows, { onConflict: 'raffle_id,number', ignoreDuplicates: true });
 }
 
+async function getRequestedTickets(numbers) {
+  const { data, error } = await supabase
+    .from('raffle_tickets')
+    .select('*')
+    .eq('raffle_id', RAFFLE_ID)
+    .in('number', numbers)
+    .order('number', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+function getUnavailableNumbers(tickets) {
+  return (tickets || [])
+    .filter((ticket) => ticket.status !== 'available')
+    .map((ticket) => ticket.number);
+}
+
 app.get('/api/health', async (_req, res) => {
   res.json({ ok: true, raffleId: RAFFLE_ID });
 });
@@ -105,6 +125,66 @@ app.get('/api/numbers', async (_req, res) => {
   }
 });
 
+app.post('/api/transfers/reserve', async (req, res) => {
+  try {
+    const numbers = cleanNumberList(req.body.numbers);
+    const { payerName, payerEmail, payerPhone, payerRut } = req.body;
+
+    if (!numbers.length) {
+      return res.status(400).json({ error: 'Debes indicar uno o más números.' });
+    }
+
+    if (!payerName || !payerEmail || !payerPhone) {
+      return res.status(400).json({ error: 'Debes completar nombre, mail y celular.' });
+    }
+
+    await ensureRaffleNumbers(RAFFLE_SIZE);
+    await releaseExpiredReservations();
+
+    const tickets = await getRequestedTickets(numbers);
+    const unavailable = getUnavailableNumbers(tickets);
+
+    if (unavailable.length) {
+      return res.status(409).json({
+        error: `Estos números ya no están disponibles: ${unavailable.join(', ')}`,
+      });
+    }
+
+    const transactionId = `transfer-${RAFFLE_ID}-${Date.now()}`;
+    const reservedUntil = addMinutes(new Date(), TRANSFER_RESERVATION_MINUTES).toISOString();
+
+    const { error: reserveError } = await supabase
+      .from('raffle_tickets')
+      .update({
+        status: 'reserved',
+        reserved_until: reservedUntil,
+        payer_name: payerName,
+        payer_email: payerEmail,
+        payer_phone: payerPhone,
+        payer_rut: payerRut || null,
+        transaction_id: transactionId,
+        payment_channel: 'transfer_pending',
+        payment_id: null,
+        notes: 'Pendiente de transferencia',
+      })
+      .eq('raffle_id', RAFFLE_ID)
+      .in('number', numbers)
+      .eq('status', 'available');
+
+    if (reserveError) throw reserveError;
+
+    res.json({
+      ok: true,
+      transaction_id: transactionId,
+      reserved_until: reservedUntil,
+      display_countdown_minutes: TRANSFER_DISPLAY_MINUTES,
+      numbers,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'No fue posible reservar para transferencia.' });
+  }
+});
+
 app.post('/api/payments/create', async (req, res) => {
   try {
     const numbers = cleanNumberList(req.body.numbers);
@@ -121,18 +201,8 @@ app.post('/api/payments/create', async (req, res) => {
     await ensureRaffleNumbers(RAFFLE_SIZE);
     await releaseExpiredReservations();
 
-    const { data: tickets, error: ticketsError } = await supabase
-      .from('raffle_tickets')
-      .select('*')
-      .eq('raffle_id', RAFFLE_ID)
-      .in('number', numbers)
-      .order('number', { ascending: true });
-
-    if (ticketsError) throw ticketsError;
-
-    const unavailable = (tickets || [])
-      .filter((ticket) => ticket.status !== 'available')
-      .map((ticket) => ticket.number);
+    const tickets = await getRequestedTickets(numbers);
+    const unavailable = getUnavailableNumbers(tickets);
 
     if (unavailable.length) {
       return res.status(409).json({
@@ -169,8 +239,8 @@ app.post('/api/payments/create', async (req, res) => {
       subject: `${RAFFLE_TITLE} - Números ${numbers.join(', ')}`,
       body: `Compra de números para ${RAFFLE_TITLE}: ${numbers.join(', ')}`,
       transaction_id: transactionId,
-      return_url: `${PUBLIC_FRONTEND_URL}/index.html?status=success`,
-      cancel_url: `${PUBLIC_FRONTEND_URL}/index.html?status=cancel`,
+      return_url: `${PUBLIC_FRONTEND_URL}?status=success`,
+      cancel_url: `${PUBLIC_FRONTEND_URL}?status=cancel`,
       notify_url: notifyUrl,
       notify_api_version: '3.0',
       expires_date: expiresDate,
