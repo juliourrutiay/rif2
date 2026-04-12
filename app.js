@@ -5,6 +5,7 @@ const RAFFLE_SIZE = 500;
 const state = {
   numbers: [],
   selected: new Set(),
+  pendingPaymentUrl: null,
 };
 
 const elements = {
@@ -20,6 +21,9 @@ const elements = {
   clearSelectionBtn: document.getElementById('clearSelectionBtn'),
   checkoutForm: document.getElementById('checkoutForm'),
   statusMessage: document.getElementById('statusMessage'),
+  paymentModal: document.getElementById('paymentModal'),
+  confirmPaymentModalBtn: document.getElementById('confirmPaymentModalBtn'),
+  cancelPaymentModalBtn: document.getElementById('cancelPaymentModalBtn'),
 };
 
 let countdownInterval = null;
@@ -149,6 +153,36 @@ function startCountdown(reservedUntil) {
   }, 1000);
 }
 
+function openPaymentModal(paymentUrl) {
+  state.pendingPaymentUrl = paymentUrl;
+  elements.paymentModal.classList.remove('hidden');
+}
+
+function closePaymentModal() {
+  state.pendingPaymentUrl = null;
+  elements.paymentModal.classList.add('hidden');
+}
+
+function handleReturnStatus() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+
+  if (status === 'cancel') {
+    setStatus(
+      'Pago cancelado. Tus números seguirán bloqueados hasta completar los 10 minutos de reserva y luego volverán a estar disponibles.',
+      'warning'
+    );
+  }
+
+  if (status === 'success') {
+    setStatus(
+      'Volviste desde Khipu. Estamos validando tu pago y actualizando tus números.',
+      'success'
+    );
+    loadNumbers();
+  }
+}
+
 async function handleCheckout(event) {
   event.preventDefault();
 
@@ -208,17 +242,7 @@ async function handleCheckout(event) {
       throw new Error('El backend no devolvió la URL de pago.');
     }
 
-    const confirmed = window.confirm(
-      'Importante: el pago debe realizarse dentro de los próximos 10 minutos. ' +
-      'Si no se completa dentro de ese plazo, el proceso se anulará y los números volverán a estar disponibles.'
-    );
-
-    if (!confirmed) {
-      setStatus('Pago cancelado antes de abrir Khipu.', 'warning');
-      return;
-    }
-
-    window.location.href = result.payment_url;
+    openPaymentModal(result.payment_url);
   } catch (error) {
     setStatus(error.message || 'Ocurrió un error al crear el pago.', 'error');
   }
@@ -265,9 +289,35 @@ function bindEvents() {
   });
 
   elements.checkoutForm.addEventListener('submit', handleCheckout);
+
+  elements.cancelPaymentModalBtn.addEventListener('click', () => {
+    closePaymentModal();
+    setStatus(
+      'Pago cancelado antes de abrir Khipu. Los números seguirán reservados hasta completar los 10 minutos.',
+      'warning'
+    );
+  });
+
+  elements.confirmPaymentModalBtn.addEventListener('click', () => {
+    if (!state.pendingPaymentUrl) return;
+    const paymentUrl = state.pendingPaymentUrl;
+    closePaymentModal();
+    window.location.href = paymentUrl;
+  });
+
+  elements.paymentModal.addEventListener('click', (event) => {
+    if (event.target === elements.paymentModal) {
+      closePaymentModal();
+      setStatus(
+        'Pago cancelado antes de abrir Khipu. Los números seguirán reservados hasta completar los 10 minutos.',
+        'warning'
+      );
+    }
+  });
 }
 
 bindEvents();
 loadNumbers();
 loadPrizes();
+handleReturnStatus();
 syncSummary();
