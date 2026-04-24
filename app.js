@@ -419,7 +419,7 @@ function startTransferDisplayCountdown(displayUntil) {
       elements.transferCountdown.textContent = timeText;
     }
 
-    setStatus(`⏳ Transferencia en curso. Tiempo visible restante: ${timeText}`, 'warning');
+    setStatus(`⏳ Transfiere el monto por los números reservados. Tiempo restante: ${timeText}`, 'warning');
   }, 1000);
 }
 
