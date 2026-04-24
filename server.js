@@ -12,8 +12,8 @@ const RAFFLE_TITLE = process.env.RAFFLE_TITLE || 'Rifa Contact Center';
 const RAFFLE_PRICE = Number(process.env.RAFFLE_PRICE || 2000);
 const RAFFLE_SIZE = Number(process.env.RAFFLE_SIZE || 500);
 const RESERVATION_MINUTES = Number(process.env.RESERVATION_MINUTES || 10);
-const TRANSFER_RESERVATION_MINUTES = Number(process.env.TRANSFER_RESERVATION_MINUTES || 45);
-const TRANSFER_DISPLAY_MINUTES = Number(process.env.TRANSFER_DISPLAY_MINUTES || 30);
+const TRANSFER_RESERVATION_MINUTES = Number(process.env.TRANSFER_RESERVATION_MINUTES || 15);
+const TRANSFER_DISPLAY_MINUTES = Number(process.env.TRANSFER_DISPLAY_MINUTES || 10);
 const KHIPU_BASE_URL = process.env.KHIPU_BASE_URL || 'https://payment-api.khipu.com';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'cambiar-este-token';
 
