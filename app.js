@@ -668,7 +668,7 @@ async function handleTransferReservation() {
     }
 
     const reservedUntil = result.reserved_until;
-    const displayMinutes = Number(result.display_countdown_minutes || 30);
+    const displayMinutes = Number(result.display_countdown_minutes || 10);
     const displayUntil = new Date(Date.now() + displayMinutes * 60000).toISOString();
 
     if (!reservedUntil) {
