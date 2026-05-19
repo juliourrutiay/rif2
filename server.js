@@ -167,97 +167,20 @@ async function countAvailableTickets() {
 }
 
 async function assignSequentialTicketsToOrder(order) {
-  const quantity = Number(order.quantity);
+  const { data, error } = await supabase.rpc('assign_raffle_opportunities', {
+    p_raffle_id: order.raffle_id,
+    p_transaction_id: order.transaction_id,
+  });
 
-  const { data: availableTickets, error: selectError } = await supabase
-    .from('raffle_tickets')
-    .select('number')
-    .eq('raffle_id', RAFFLE_ID)
-    .eq('status', 'available')
-    .order('number', { ascending: true })
-    .limit(quantity);
-
-  if (selectError) throw selectError;
-
-  if (!availableTickets || availableTickets.length < quantity) {
-    throw new Error('No quedan suficientes oportunidades disponibles para asignar.');
+  if (error) {
+    throw error;
   }
 
-  const numbers = availableTickets.map((ticket) => ticket.number);
-
-  const { data: updatedTickets, error: updateError } = await supabase
-    .from('raffle_tickets')
-    .update({
-      status: 'paid',
-      reserved_until: null,
-      payer_name: order.payer_name,
-      payer_email: order.payer_email,
-      payer_phone: order.payer_phone,
-      payer_rut: order.payer_rut || null,
-      payment_id: order.payment_id,
-      transaction_id: order.transaction_id,
-      payment_channel: 'flow',
-      notes: `Compra automática de ${quantity} oportunidad(es) vía Flow`,
-      updated_at: nowIso(),
-    })
-    .eq('raffle_id', RAFFLE_ID)
-    .in('number', numbers)
-    .eq('status', 'available')
-    .select('number');
-
-  if (updateError) throw updateError;
-
-  if (!updatedTickets || updatedTickets.length !== quantity) {
-    const partiallyAssigned = (updatedTickets || []).map((ticket) => ticket.number);
-
-    if (partiallyAssigned.length) {
-      await supabase
-        .from('raffle_tickets')
-        .update({
-          status: 'available',
-          reserved_until: null,
-          payer_name: null,
-          payer_email: null,
-          payer_phone: null,
-          payer_rut: null,
-          payment_id: null,
-          transaction_id: null,
-          payment_channel: null,
-          notes: null,
-          updated_at: nowIso(),
-        })
-        .eq('raffle_id', RAFFLE_ID)
-        .in('number', partiallyAssigned)
-        .eq('transaction_id', order.transaction_id);
-    }
-
-    await supabase
-      .from('raffle_orders')
-      .update({
-        status: 'assignment_error',
-        assigned_numbers: partiallyAssigned,
-      })
-      .eq('transaction_id', order.transaction_id);
-
-    throw new Error('No fue posible asignar todas las oportunidades. Revisa disponibilidad en admin.');
+  if (!data?.ok) {
+    throw new Error('No fue posible asignar las oportunidades desde Supabase.');
   }
 
-  const assignedNumbers = updatedTickets
-    .map((ticket) => ticket.number)
-    .sort((a, b) => a - b);
-
-  const { error: orderUpdateError } = await supabase
-    .from('raffle_orders')
-    .update({
-      status: 'paid',
-      assigned_numbers: assignedNumbers,
-      paid_at: nowIso(),
-    })
-    .eq('transaction_id', order.transaction_id);
-
-  if (orderUpdateError) throw orderUpdateError;
-
-  return assignedNumbers;
+  return data.assigned_numbers || [];
 }
 
 async function confirmFlowPaymentByToken(token) {
