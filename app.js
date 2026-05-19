@@ -315,7 +315,7 @@ async function handleFlowCheckout(event) {
     });
 
     openFlowModal(result.payment_url);
-    setStatus('Pago generado. Confirma para continuar a Flow.', 'success');
+    setStatus('Confirma para continuar a Flow.', 'success');
   } catch (error) {
     setStatus(error.message || 'Ocurrió un error al crear el pago.', 'error');
   } finally {
