@@ -437,14 +437,19 @@ function bindEvents() {
     });
   }
 
-  if (elements.floatingCheckoutBtn) {
-    elements.floatingCheckoutBtn.addEventListener('click', () => {
-      const checkout = document.getElementById('checkout');
-      if (!checkout) return;
+if (elements.floatingCheckoutBtn) {
 
-      checkout.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
+  elements.floatingCheckoutBtn.addEventListener('click', () => {
+
+    const participar = document.getElementById('participar');
+
+    if (!participar) return;
+
+    participar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  });
+
+}
 
   window.addEventListener('scroll', updateFloatingCheckoutButton);
   window.addEventListener('resize', updateFloatingCheckoutButton);
