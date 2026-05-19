@@ -6,9 +6,16 @@ import { createClient } from '@supabase/supabase-js';
 
 const app = express();
 
+app.set('trust proxy', true);
+
 const PORT = Number(process.env.PORT || 8787);
+
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:5500';
 const PUBLIC_FRONTEND_URL = (process.env.PUBLIC_FRONTEND_URL || FRONTEND_URL).replace(/\/+$/, '');
+
+const BACKEND_PUBLIC_URL = (
+  process.env.BACKEND_PUBLIC_URL || 'https://rifa-backend-xvti.onrender.com'
+).replace(/\/+$/, '');
 
 const RAFFLE_ID = process.env.RAFFLE_ID || 'rifa-verde';
 const RAFFLE_TITLE = process.env.RAFFLE_TITLE || 'Rifa Contact Center';
@@ -38,8 +45,8 @@ function unauthorized(res) {
   return res.status(401).json({ error: 'Token administrador inválido.' });
 }
 
-function backendBaseUrl(req) {
-  return `${req.protocol}://${req.get('host')}`;
+function backendBaseUrl() {
+  return BACKEND_PUBLIC_URL;
 }
 
 function cleanQuantity(value) {
@@ -310,6 +317,9 @@ app.get('/api/health', async (_req, res) => {
     raffleId: RAFFLE_ID,
     raffleTitle: RAFFLE_TITLE,
     raffleSize: RAFFLE_SIZE,
+    backendPublicUrl: BACKEND_PUBLIC_URL,
+    publicFrontendUrl: PUBLIC_FRONTEND_URL,
+    flowBaseUrl: FLOW_BASE_URL,
   });
 });
 
@@ -389,8 +399,8 @@ app.post('/api/flow/create', async (req, res) => {
       currency: 'CLP',
       amount: String(amount),
       email: payerEmail,
-      urlConfirmation: `${backendBaseUrl(req)}/api/flow/confirmation`,
-      urlReturn: `${backendBaseUrl(req)}/api/flow/return`,
+      urlConfirmation: `${backendBaseUrl()}/api/flow/confirmation`,
+      urlReturn: `${backendBaseUrl()}/api/flow/return`,
       optional: JSON.stringify({
         raffleId: RAFFLE_ID,
         quantity,
@@ -450,7 +460,9 @@ app.all('/api/flow/return', async (req, res) => {
     const result = await confirmFlowPaymentByToken(token);
 
     if (result.ok) {
-      return res.redirect(`${PUBLIC_FRONTEND_URL}?status=success&qty=${encodeURIComponent(result.quantity || '')}`);
+      return res.redirect(
+        `${PUBLIC_FRONTEND_URL}?status=success&qty=${encodeURIComponent(result.quantity || '')}`
+      );
     }
 
     if (result.cancelled) {
