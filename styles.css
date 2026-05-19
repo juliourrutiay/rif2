@@ -810,6 +810,7 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
   display: flex;
   justify-content: center;
+  text-align: center;
   align-items: center;
   padding: 24px 0 40px;
   text-align: center;
