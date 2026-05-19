@@ -1,34 +1,72 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const app = express();
+
 const PORT = Number(process.env.PORT || 8787);
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:5500';
-const PUBLIC_FRONTEND_URL = (process.env.PUBLIC_FRONTEND_URL || FRONTEND_URL).replace(/\/+$/, '');
-const RAFFLE_ID = process.env.RAFFLE_ID || 'rifa-verde';
-const RAFFLE_TITLE = process.env.RAFFLE_TITLE || 'Rifa Contact Center';
-const RAFFLE_PRICE = Number(process.env.RAFFLE_PRICE || 2000);
-const RAFFLE_SIZE = Number(process.env.RAFFLE_SIZE || 500);
-const RESERVATION_MINUTES = Number(process.env.RESERVATION_MINUTES || 10);
-const TRANSFER_RESERVATION_MINUTES = Number(process.env.TRANSFER_RESERVATION_MINUTES || 15);
-const TRANSFER_DISPLAY_MINUTES = Number(process.env.TRANSFER_DISPLAY_MINUTES || 10);
-const KHIPU_BASE_URL = process.env.KHIPU_BASE_URL || 'https://payment-api.khipu.com';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'cambiar-este-token';
+
+const FRONTEND_URL =
+  process.env.FRONTEND_URL || 'http://127.0.0.1:5500';
+
+const PUBLIC_FRONTEND_URL =
+  (process.env.PUBLIC_FRONTEND_URL || FRONTEND_URL).replace(/\/+$/, '');
+
+const RAFFLE_ID =
+  process.env.RAFFLE_ID || 'rifa-verde';
+
+const RAFFLE_TITLE =
+  process.env.RAFFLE_TITLE || 'Rifa Contact Center';
+
+const RAFFLE_PRICE =
+  Number(process.env.RAFFLE_PRICE || 2000);
+
+const RAFFLE_SIZE =
+  Number(process.env.RAFFLE_SIZE || 500);
+
+const RESERVATION_MINUTES =
+  Number(process.env.RESERVATION_MINUTES || 10);
+
+const TRANSFER_RESERVATION_MINUTES =
+  Number(process.env.TRANSFER_RESERVATION_MINUTES || 15);
+
+const TRANSFER_DISPLAY_MINUTES =
+  Number(process.env.TRANSFER_DISPLAY_MINUTES || 10);
+
+const ADMIN_TOKEN =
+  process.env.ADMIN_TOKEN || 'cambiar-este-token';
+
+const FLOW_BASE_URL =
+  process.env.FLOW_BASE_URL || 'https://sandbox.flow.cl/api';
+
+const FLOW_API_KEY =
+  process.env.FLOW_API_KEY || '';
+
+const FLOW_SECRET_KEY =
+  process.env.FLOW_SECRET_KEY || '';
 
 const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://example.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'service-role-key'
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 app.use(cors({ origin: true }));
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
 
 function addMinutes(date, minutes) {
   const next = new Date(date);
+
   next.setMinutes(next.getMinutes() + minutes);
+
   return next;
 }
 
@@ -37,14 +75,81 @@ function nowIso() {
 }
 
 function cleanNumberList(numbers) {
-  return [...new Set((numbers || [])
-    .map((n) => Number(n))
-    .filter((n) => Number.isInteger(n) && n >= 1 && n <= RAFFLE_SIZE))]
-    .sort((a, b) => a - b);
+  return [
+    ...new Set(
+      (numbers || [])
+        .map((n) => Number(n))
+        .filter(
+          (n) =>
+            Number.isInteger(n) &&
+            n >= 1 &&
+            n <= RAFFLE_SIZE
+        )
+    ),
+  ].sort((a, b) => a - b);
 }
 
 function unauthorized(res) {
-  return res.status(401).json({ error: 'Token administrador inválido.' });
+  return res
+    .status(401)
+    .json({
+      error: 'Token administrador inválido.',
+    });
+}
+
+function signFlowParams(params) {
+  const keys = Object.keys(params).sort();
+
+  const stringToSign = keys
+    .map((key) => `${key}${params[key]}`)
+    .join('');
+
+  return crypto
+    .createHmac('sha256', FLOW_SECRET_KEY)
+    .update(stringToSign)
+    .digest('hex');
+}
+
+async function callFlow(endpoint, params) {
+  const payload = {
+    ...params,
+    apiKey: FLOW_API_KEY,
+  };
+
+  payload.s = signFlowParams(payload);
+
+  const response = await fetch(
+    `${FLOW_BASE_URL}${endpoint}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type':
+          'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(payload),
+    }
+  );
+
+  const text = await response.text();
+
+  let json = {};
+
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(
+      `Respuesta inválida de Flow: ${text}`
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      json.message ||
+        'Flow respondió con error.'
+    );
+  }
+
+  return json;
 }
 
 async function releaseExpiredReservations() {
@@ -70,19 +175,34 @@ async function releaseExpiredReservations() {
 async function ensureRaffleNumbers(size) {
   const { count } = await supabase
     .from('raffle_tickets')
-    .select('*', { count: 'exact', head: true })
+    .select('*', {
+      count: 'exact',
+      head: true,
+    })
     .eq('raffle_id', RAFFLE_ID);
 
   if ((count || 0) >= size) return;
 
   const rows = [];
-  for (let number = 1; number <= size; number += 1) {
-    rows.push({ raffle_id: RAFFLE_ID, number, status: 'available' });
+
+  for (
+    let number = 1;
+    number <= size;
+    number += 1
+  ) {
+    rows.push({
+      raffle_id: RAFFLE_ID,
+      number,
+      status: 'available',
+    });
   }
 
   await supabase
     .from('raffle_tickets')
-    .upsert(rows, { onConflict: 'raffle_id,number', ignoreDuplicates: true });
+    .upsert(rows, {
+      onConflict: 'raffle_id,number',
+      ignoreDuplicates: true,
+    });
 }
 
 async function getRequestedTickets(numbers) {
@@ -91,565 +211,302 @@ async function getRequestedTickets(numbers) {
     .select('*')
     .eq('raffle_id', RAFFLE_ID)
     .in('number', numbers)
-    .order('number', { ascending: true });
+    .order('number', {
+      ascending: true,
+    });
 
   if (error) throw error;
+
   return data || [];
 }
 
 function getUnavailableNumbers(tickets) {
   return (tickets || [])
-    .filter((ticket) => ticket.status !== 'available')
+    .filter(
+      (ticket) =>
+        ticket.status !== 'available'
+    )
     .map((ticket) => ticket.number);
 }
 
 app.get('/api/health', async (_req, res) => {
-  res.json({ ok: true, raffleId: RAFFLE_ID });
+  res.json({
+    ok: true,
+    raffleId: RAFFLE_ID,
+  });
 });
 
 app.get('/api/numbers', async (_req, res) => {
   try {
     await ensureRaffleNumbers(RAFFLE_SIZE);
+
     await releaseExpiredReservations();
 
     const { data, error } = await supabase
       .from('raffle_tickets')
-      .select('number,status,reserved_until')
+      .select(
+        'number,status,reserved_until'
+      )
       .eq('raffle_id', RAFFLE_ID)
-      .order('number', { ascending: true });
+      .order('number', {
+        ascending: true,
+      });
 
     if (error) throw error;
-    res.json({ numbers: data || [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Error al consultar números.' });
-  }
-});
-
-app.post('/api/transfers/reserve', async (req, res) => {
-  try {
-    const numbers = cleanNumberList(req.body.numbers);
-    const { payerName, payerEmail, payerPhone, payerRut } = req.body;
-
-    if (!numbers.length) {
-      return res.status(400).json({ error: 'Debes indicar uno o más números.' });
-    }
-
-    if (!payerName || !payerEmail || !payerPhone) {
-      return res.status(400).json({ error: 'Debes completar nombre, mail y celular.' });
-    }
-
-    await ensureRaffleNumbers(RAFFLE_SIZE);
-    await releaseExpiredReservations();
-
-    const tickets = await getRequestedTickets(numbers);
-    const unavailable = getUnavailableNumbers(tickets);
-
-    if (unavailable.length) {
-      return res.status(409).json({
-        error: `Estos números ya no están disponibles: ${unavailable.join(', ')}`,
-      });
-    }
-
-    const transactionId = `transfer-${RAFFLE_ID}-${Date.now()}`;
-    const reservedUntil = addMinutes(new Date(), TRANSFER_RESERVATION_MINUTES).toISOString();
-
-    const { error: reserveError } = await supabase
-      .from('raffle_tickets')
-      .update({
-        status: 'reserved',
-        reserved_until: reservedUntil,
-        payer_name: payerName,
-        payer_email: payerEmail,
-        payer_phone: payerPhone,
-        payer_rut: payerRut || null,
-        transaction_id: transactionId,
-        payment_channel: 'transfer_pending',
-        payment_id: null,
-        notes: 'Pendiente de transferencia',
-      })
-      .eq('raffle_id', RAFFLE_ID)
-      .in('number', numbers)
-      .eq('status', 'available');
-
-    if (reserveError) throw reserveError;
 
     res.json({
-      ok: true,
-      transaction_id: transactionId,
-      reserved_until: reservedUntil,
-      display_countdown_minutes: TRANSFER_DISPLAY_MINUTES,
-      numbers,
+      numbers: data || [],
     });
   } catch (error) {
-    res.status(500).json({ error: error.message || 'No fue posible reservar para transferencia.' });
+    res.status(500).json({
+      error:
+        error.message ||
+        'Error al consultar números.',
+    });
   }
 });
 
-app.post('/api/payments/create', async (req, res) => {
-  try {
-    const numbers = cleanNumberList(req.body.numbers);
-    const { payerName, payerEmail, payerPhone, payerRut } = req.body;
-
-    if (!numbers.length) {
-      return res.status(400).json({ error: 'Debes indicar uno o más números.' });
-    }
-
-    if (!payerName || !payerEmail || !payerPhone) {
-      return res.status(400).json({ error: 'Debes completar nombre, mail y celular.' });
-    }
-
-    await ensureRaffleNumbers(RAFFLE_SIZE);
-    await releaseExpiredReservations();
-
-    const tickets = await getRequestedTickets(numbers);
-    const unavailable = getUnavailableNumbers(tickets);
-
-    if (unavailable.length) {
-      return res.status(409).json({
-        error: `Estos números ya no están disponibles: ${unavailable.join(', ')}`,
-      });
-    }
-
-    const transactionId = `${RAFFLE_ID}-${Date.now()}`;
-    const reservedUntil = addMinutes(new Date(), RESERVATION_MINUTES).toISOString();
-
-    const { error: reserveError } = await supabase
-      .from('raffle_tickets')
-      .update({
-        status: 'reserved',
-        reserved_until: reservedUntil,
-        payer_name: payerName,
-        payer_email: payerEmail,
-        payer_phone: payerPhone,
-        payer_rut: payerRut || null,
-        transaction_id: transactionId,
-      })
-      .eq('raffle_id', RAFFLE_ID)
-      .in('number', numbers)
-      .eq('status', 'available');
-
-    if (reserveError) throw reserveError;
-
-    const notifyUrl = `${req.protocol}://${req.get('host')}/api/payments/webhook`;
-    const expiresDate = addMinutes(new Date(), RESERVATION_MINUTES).toISOString();
-
-    const paymentPayload = {
-      amount: RAFFLE_PRICE * numbers.length,
-      currency: 'CLP',
-      subject: `${RAFFLE_TITLE} - Números ${numbers.join(', ')}`,
-      body: `Compra de números para ${RAFFLE_TITLE}: ${numbers.join(', ')}`,
-      transaction_id: transactionId,
-      return_url: `${PUBLIC_FRONTEND_URL}?status=success`,
-      cancel_url: `${PUBLIC_FRONTEND_URL}?status=cancel`,
-      notify_url: notifyUrl,
-      notify_api_version: '3.0',
-      expires_date: expiresDate,
-      payer_name: payerName,
-      payer_email: payerEmail,
-      custom: JSON.stringify({ raffleId: RAFFLE_ID, numbers, payerPhone, payerRut }),
-    };
-
-    const khipuResponse = await fetch(`${KHIPU_BASE_URL}/v3/payments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.KHIPU_API_KEY || '',
-      },
-      body: JSON.stringify(paymentPayload),
-    });
-
-    const rawKhipu = await khipuResponse.text();
-    let khipuData = {};
-
+app.post(
+  '/api/flow/create',
+  async (req, res) => {
     try {
-      khipuData = rawKhipu ? JSON.parse(rawKhipu) : {};
-    } catch (e) {
-      throw new Error(`Respuesta inválida de Khipu: ${rawKhipu}`);
-    }
+      const numbers = cleanNumberList(
+        req.body.numbers
+      );
 
-    if (!khipuResponse.ok) {
+      const {
+        payerName,
+        payerEmail,
+        payerPhone,
+        payerRut,
+      } = req.body;
+
+      if (!numbers.length) {
+        return res.status(400).json({
+          error:
+            'Debes indicar uno o más números.',
+        });
+      }
+
+      if (
+        !payerName ||
+        !payerEmail ||
+        !payerPhone
+      ) {
+        return res.status(400).json({
+          error:
+            'Debes completar nombre, mail y celular.',
+        });
+      }
+
+      await ensureRaffleNumbers(
+        RAFFLE_SIZE
+      );
+
+      await releaseExpiredReservations();
+
+      const tickets =
+        await getRequestedTickets(
+          numbers
+        );
+
+      const unavailable =
+        getUnavailableNumbers(tickets);
+
+      if (unavailable.length) {
+        return res.status(409).json({
+          error: `Estos números ya no están disponibles: ${unavailable.join(
+            ', '
+          )}`,
+        });
+      }
+
+      const transactionId = `flow-${Date.now()}`;
+
+      const reservedUntil = addMinutes(
+        new Date(),
+        RESERVATION_MINUTES
+      ).toISOString();
+
+      const { error: reserveError } =
+        await supabase
+          .from('raffle_tickets')
+          .update({
+            status: 'reserved',
+            reserved_until:
+              reservedUntil,
+            payer_name: payerName,
+            payer_email: payerEmail,
+            payer_phone: payerPhone,
+            payer_rut:
+              payerRut || null,
+            transaction_id:
+              transactionId,
+            payment_channel:
+              'flow',
+          })
+          .eq(
+            'raffle_id',
+            RAFFLE_ID
+          )
+          .in('number', numbers)
+          .eq(
+            'status',
+            'available'
+          );
+
+      if (reserveError)
+        throw reserveError;
+
+      const amount =
+        RAFFLE_PRICE *
+        numbers.length;
+
+      const flowResponse =
+        await callFlow(
+          '/payment/create',
+          {
+            commerceOrder:
+              transactionId,
+
+            subject: `${RAFFLE_TITLE} - ${numbers.length} número(s)`,
+
+            currency: 'CLP',
+
+            amount: String(amount),
+
+            email: payerEmail,
+
+            urlConfirmation: `${PUBLIC_FRONTEND_URL}/api/flow/confirmation`,
+
+            urlReturn: `${PUBLIC_FRONTEND_URL}?flow=success`,
+          }
+        );
+
       await supabase
         .from('raffle_tickets')
         .update({
-          status: 'available',
-          reserved_until: null,
-          payer_name: null,
-          payer_email: null,
-          payer_phone: null,
-          payer_rut: null,
-          transaction_id: null,
+          payment_id:
+            flowResponse.token ||
+            null,
         })
-        .eq('raffle_id', RAFFLE_ID)
+        .eq(
+          'raffle_id',
+          RAFFLE_ID
+        )
         .in('number', numbers);
 
-      return res.status(400).json({
-        error: khipuData.message || 'Khipu no pudo crear el cobro.',
-        details: khipuData,
+      return res.json({
+        ok: true,
+        payment_url:
+          flowResponse.url +
+          '?token=' +
+          flowResponse.token,
+
+        token:
+          flowResponse.token,
+
+        reserved_until:
+          reservedUntil,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error.message ||
+          'No fue posible generar pago Flow.',
       });
     }
-
-    await supabase
-      .from('raffle_tickets')
-      .update({
-        payment_id: khipuData.payment_id || null,
-        payment_channel: 'khipu',
-      })
-      .eq('raffle_id', RAFFLE_ID)
-      .in('number', numbers);
-
-    res.json({
-      ok: true,
-      payment_id: khipuData.payment_id,
-      payment_url: khipuData.payment_url,
-      transaction_id: transactionId,
-      reserved_until: reservedUntil,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'No fue posible generar el pago.' });
   }
-});
+);
 
-app.post('/api/payments/webhook', async (req, res) => {
-  try {
-    const paymentId =
-      req.body.payment_id ||
-      (req.body.api_version ? req.body.payment_id : req.body.paymentId);
-
-    if (!paymentId) {
-      return res.status(400).json({ error: 'Webhook sin payment_id.' });
-    }
-
-    const verifyResponse = await fetch(`${KHIPU_BASE_URL}/v3/payments/${paymentId}`, {
-      headers: {
-        'x-api-key': process.env.KHIPU_API_KEY || '',
-      },
-    });
-
-    const rawVerify = await verifyResponse.text();
-    let verifyData = {};
-
+app.post(
+  '/api/flow/confirmation',
+  async (req, res) => {
     try {
-      verifyData = rawVerify ? JSON.parse(rawVerify) : {};
-    } catch (e) {
-      throw new Error(`Respuesta inválida al verificar pago en Khipu: ${rawVerify}`);
+      const token = req.body.token;
+
+      if (!token) {
+        return res
+          .status(400)
+          .send('Token faltante');
+      }
+
+      const status =
+        await callFlow(
+          '/payment/getStatus',
+          {
+            token,
+          }
+        );
+
+      if (
+        status.status !== 2
+      ) {
+        return res.send('OK');
+      }
+
+      const { data: tickets, error } =
+        await supabase
+          .from('raffle_tickets')
+          .select('*')
+          .eq(
+            'payment_id',
+            token
+          );
+
+      if (error) throw error;
+
+      const numbers =
+        (tickets || []).map(
+          (t) => t.number
+        );
+
+      if (!numbers.length) {
+        return res.send('OK');
+      }
+
+      await supabase
+        .from('raffle_tickets')
+        .update({
+          status: 'paid',
+          reserved_until: null,
+          payment_channel:
+            'flow',
+          notes:
+            'Pagado vía Flow',
+        })
+        .eq(
+          'raffle_id',
+          RAFFLE_ID
+        )
+        .in('number', numbers);
+
+      return res.send('OK');
+    } catch (error) {
+      console.error(error);
+
+      return res
+        .status(500)
+        .send('ERROR');
     }
-
-    if (!verifyResponse.ok) {
-      return res.status(400).json({
-        error: 'No fue posible verificar el pago en Khipu.',
-        details: verifyData,
-      });
-    }
-
-    if (verifyData.status !== 'done') {
-      return res.status(200).json({ ok: true, ignored: true, status: verifyData.status });
-    }
-
-    const { data: tickets, error } = await supabase
-      .from('raffle_tickets')
-      .select('number,transaction_id')
-      .eq('raffle_id', RAFFLE_ID)
-      .eq('payment_id', paymentId);
-
-    if (error) throw error;
-
-    const numbers = (tickets || []).map((ticket) => ticket.number);
-
-    if (!numbers.length) {
-      return res.status(200).json({ ok: true, ignored: true });
-    }
-
-    await supabase
-      .from('raffle_tickets')
-      .update({
-        status: 'paid',
-        reserved_until: null,
-        payment_channel: 'khipu',
-      })
-      .eq('raffle_id', RAFFLE_ID)
-      .in('number', numbers);
-
-    res.json({ ok: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Error al procesar webhook.' });
   }
-});
+);
 
-app.get('/api/admin/tickets', async (req, res) => {
-  if (req.get('x-admin-token') !== ADMIN_TOKEN) return unauthorized(res);
-
-  try {
-    const { data, error } = await supabase
-      .from('raffle_tickets')
-      .select('*')
-      .eq('raffle_id', RAFFLE_ID)
-      .order('number', { ascending: true });
-
-    if (error) throw error;
-
-    res.json({ tickets: data || [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'No fue posible consultar tickets.' });
-  }
-});
-
-app.get('/api/admin/export.csv', async (req, res) => {
-  const token = req.query.token || req.get('x-admin-token');
-  if (token !== ADMIN_TOKEN) return res.status(401).send('Token inválido');
-
-  try {
-    const { data, error } = await supabase
-      .from('raffle_tickets')
-      .select('*')
-      .eq('raffle_id', RAFFLE_ID)
-      .order('number', { ascending: true });
-
-    if (error) throw error;
-
-    const headers = [
-      'number',
-      'status',
-      'payer_name',
-      'payer_phone',
-      'payer_email',
-      'payer_rut',
-      'payment_channel',
-      'transaction_id',
-      'payment_id',
-      'notes',
-    ];
-
-    const rows = [headers.join(',')].concat(
-      (data || []).map((row) =>
-        headers.map((key) => `"${String(row[key] ?? '').replaceAll('"', '""')}"`).join(',')
-      )
+app.get(
+  '/api/flow/return',
+  async (_req, res) => {
+    return res.redirect(
+      `${PUBLIC_FRONTEND_URL}?flow=success`
     );
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${RAFFLE_ID}-tickets.csv"`
-    );
-    res.send(rows.join('\n'));
-  } catch (error) {
-    res.status(500).send(error.message || 'No fue posible exportar el CSV.');
   }
-});
-
-app.post('/api/admin/assign-manual', async (req, res) => {
-  if (req.get('x-admin-token') !== ADMIN_TOKEN) return unauthorized(res);
-
-  try {
-    const numbers = cleanNumberList(req.body.numbers);
-    const { payerName, payerEmail, payerPhone, payerRut, notes } = req.body;
-
-    if (!numbers.length) {
-      return res.status(400).json({ error: 'Debes enviar uno o más números.' });
-    }
-
-    if (!payerName || !payerPhone || !payerEmail) {
-      return res.status(400).json({ error: 'Faltan datos del comprador.' });
-    }
-
-    await ensureRaffleNumbers(RAFFLE_SIZE);
-    await releaseExpiredReservations();
-
-    const { data: tickets, error: ticketsError } = await supabase
-      .from('raffle_tickets')
-      .select('*')
-      .eq('raffle_id', RAFFLE_ID)
-      .in('number', numbers);
-
-    if (ticketsError) throw ticketsError;
-
-    const unavailable = (tickets || [])
-      .filter((ticket) => ticket.status === 'paid')
-      .map((ticket) => ticket.number);
-
-    if (unavailable.length) {
-      return res.status(409).json({
-        error: `Estos números ya están pagados: ${unavailable.join(', ')}`,
-      });
-    }
-
-    const transactionId = `manual-${Date.now()}`;
-
-    const { error } = await supabase
-      .from('raffle_tickets')
-      .update({
-        status: 'paid',
-        reserved_until: null,
-        payer_name: payerName,
-        payer_email: payerEmail,
-        payer_phone: payerPhone,
-        payer_rut: payerRut || null,
-        transaction_id: transactionId,
-        payment_channel: 'manual',
-        notes: notes || null,
-      })
-      .eq('raffle_id', RAFFLE_ID)
-      .in('number', numbers);
-
-    if (error) throw error;
-
-    res.json({ ok: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'No fue posible asignar manualmente.' });
-  }
-});
-
-// =======================
-// ADMIN - UPDATE TICKET
-// =======================
-app.post('/api/admin/update-ticket', async (req, res) => {
-  if (req.get('x-admin-token') !== ADMIN_TOKEN) return unauthorized(res);
-
-  try {
-    const { number, data } = req.body;
-
-    const { error } = await supabase
-      .from('raffle_tickets')
-      .update(data)
-      .eq('raffle_id', RAFFLE_ID)
-      .eq('number', number);
-
-    if (error) throw error;
-
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'No fue posible actualizar el ticket.' });
-  }
-});
-
-// =======================
-// ADMIN - RELEASE TICKET
-// =======================
-app.post('/api/admin/release-ticket', async (req, res) => {
-  if (req.get('x-admin-token') !== ADMIN_TOKEN) return unauthorized(res);
-
-  try {
-    const { number } = req.body;
-
-    const { error } = await supabase
-      .from('raffle_tickets')
-      .update({
-        status: 'available',
-        reserved_until: null,
-        payer_name: null,
-        payer_email: null,
-        payer_phone: null,
-        payer_rut: null,
-        payment_id: null,
-        transaction_id: null,
-        payment_channel: null,
-        notes: null,
-      })
-      .eq('raffle_id', RAFFLE_ID)
-      .eq('number', number);
-
-    if (error) throw error;
-
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'No fue posible liberar el ticket.' });
-  }
-});
-
-// =======================
-// PREMIOS - GET PUBLICO
-// =======================
-app.get('/api/prizes', async (_req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('raffle_prizes')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-
-    res.json({ prizes: data || [] });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'No fue posible consultar los premios.' });
-  }
-});
-
-// =======================
-// PREMIOS - CREATE ADMIN
-// =======================
-app.post('/api/admin/prizes', async (req, res) => {
-  if (req.get('x-admin-token') !== ADMIN_TOKEN) return unauthorized(res);
-
-  try {
-    const { title, description, image } = req.body;
-
-    if (!title || !description || !image) {
-      return res.status(400).json({ error: 'Debes completar título, descripción e imagen.' });
-    }
-
-    const { data, error } = await supabase
-      .from('raffle_prizes')
-      .insert([{ title, description, image }])
-      .select();
-
-    if (error) throw error;
-
-    res.json({ ok: true, prize: data?.[0] || null });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'No fue posible agregar el premio.' });
-  }
-});
-
-// =======================
-// PREMIOS - UPDATE ADMIN
-// =======================
-app.put('/api/admin/prizes/:id', async (req, res) => {
-  if (req.get('x-admin-token') !== ADMIN_TOKEN) return unauthorized(res);
-
-  try {
-    const { title, description, image } = req.body;
-    const { id } = req.params;
-
-    if (!title || !description || !image) {
-      return res.status(400).json({ error: 'Debes completar título, descripción e imagen.' });
-    }
-
-    const { data, error } = await supabase
-      .from('raffle_prizes')
-      .update({ title, description, image })
-      .eq('id', id)
-      .select();
-
-    if (error) throw error;
-
-    res.json({ ok: true, prize: data?.[0] || null });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'No fue posible actualizar el premio.' });
-  }
-});
-
-// =======================
-// PREMIOS - DELETE ADMIN
-// =======================
-app.delete('/api/admin/prizes/:id', async (req, res) => {
-  if (req.get('x-admin-token') !== ADMIN_TOKEN) return unauthorized(res);
-
-  try {
-    const { id } = req.params;
-
-    const { error } = await supabase
-      .from('raffle_prizes')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'No fue posible eliminar el premio.' });
-  }
-});
+);
 
 app.listen(PORT, async () => {
-  await ensureRaffleNumbers(RAFFLE_SIZE);
-  console.log(`Rifa backend escuchando en http://localhost:${PORT}`);
+  await ensureRaffleNumbers(
+    RAFFLE_SIZE
+  );
+
+  console.log(
+    `Servidor iniciado en puerto ${PORT}`
+  );
 });
