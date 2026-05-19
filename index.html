@@ -3,12 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rifa</title>
+    <title>Rifa Contact Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
+
   <body>
     <div class="background-glow background-glow-left"></div>
     <div class="background-glow background-glow-right"></div>
@@ -18,10 +22,10 @@
         <span class="brand-dot"></span>
         <span class="brand">Rifa Contact Center</span>
       </div>
+
       <nav class="topnav">
         <a href="#premios">Premios</a>
-        <a href="#numeros">Números</a>
-        <a href="#checkout">Pago</a>
+        <a href="#participar">Participar</a>
         <a href="./admin.html">Admin</a>
       </nav>
     </header>
@@ -32,28 +36,33 @@
           <span class="eyebrow">Rifa solidaria</span>
           <h1>Tu ayuda puede marcar una diferencia real.</h1>
           <p>
-            Esta rifa nace para apoyar a un colaborador que hoy enfrenta un momento complejo a causa de una enfermedad.
-            Cada número comprado es una forma concreta de acompañar, aportar y dar esperanza en un momento en que toda ayuda cuenta.
+            Esta rifa nace para apoyar a un colaborador que hoy enfrenta un momento complejo
+            a causa de una enfermedad. Cada oportunidad comprada es una forma concreta de
+            acompañar, aportar y dar esperanza.
           </p>
+
           <div class="hero-tags">
-            <span>Reserva por transferencia</span>
-            <span>Selección múltiple</span>
-            <span>Registro de comprador</span>
+            <span>Compra oportunidades</span>
+            <span>Pago seguro con Flow</span>
+            <span>Tarjeta o transferencia</span>
+            <span>Mientras más oportunidades, más posibilidades</span>
           </div>
         </div>
 
         <div class="hero-stats">
           <article class="stat-card">
             <strong id="heroPrice">$2.000</strong>
-            <span>Valor por número</span>
+            <span>Valor por oportunidad</span>
           </article>
+
           <article class="stat-card">
-            <strong id="heroCount">0</strong>
-            <span>Números disponibles para comprar</span>
+            <strong>100%</strong>
+            <span>Tu aporte ayuda directamente a esta causa</span>
           </article>
+
           <article class="stat-card">
-            <strong>Opción</strong>
-            <span>Puedes reservar por transferencia</span>
+            <strong>Flow</strong>
+            <span>Paga con las opciones disponibles en la plataforma</span>
           </article>
         </div>
       </section>
@@ -69,45 +78,57 @@
         <div class="prizes-grid"></div>
       </section>
 
-      <section class="content-grid">
-        <section id="numeros" class="card section-card">
-          <div class="section-head compact">
+      <section id="participar" class="purchase-layout">
+        <section class="card section-card opportunity-card">
+          <span class="section-kicker">Participa</span>
+          <h2>Elige cuántas oportunidades quieres comprar</h2>
+          <p>
+            Ya no necesitas elegir números manualmente. El sistema asignará internamente tus
+            oportunidades una vez que el pago sea confirmado.
+          </p>
+
+          <div class="opportunity-selector">
+            <button id="decreaseQuantityBtn" type="button" class="quantity-btn">−</button>
+            <div class="quantity-display">
+              <strong id="quantityValue">1</strong>
+              <span>oportunidad(es)</span>
+            </div>
+            <button id="increaseQuantityBtn" type="button" class="quantity-btn">+</button>
+          </div>
+
+          <div class="quick-quantity-row">
+            <button type="button" class="quick-quantity-btn" data-quantity="1">1</button>
+            <button type="button" class="quick-quantity-btn" data-quantity="3">3</button>
+            <button type="button" class="quick-quantity-btn" data-quantity="5">5</button>
+            <button type="button" class="quick-quantity-btn" data-quantity="10">10</button>
+            <button type="button" class="quick-quantity-btn" data-quantity="20">20</button>
+          </div>
+
+          <div class="summary-box summary-stack opportunity-summary">
             <div>
-              <span class="section-kicker">Números</span>
-              <h2>Selecciona los números que quieres</h2>
+              <span>Valor unitario</span>
+              <strong id="ticketPrice">$2.000</strong>
             </div>
-            <div style="display:flex; gap:10px; align-items:center;">
-              <button id="clearSelectionBtn" type="button" class="ghost-btn" style="display:none;">Limpiar selección</button>
-              <button id="refreshBtn" class="ghost-btn small-btn">Actualizar</button>
+            <div>
+              <span>Total a pagar</span>
+              <strong id="totalPrice">$2.000</strong>
             </div>
           </div>
 
-          <div class="legend">
-            <span><i class="legend-box available"></i> Disponible</span>
-            <span><i class="legend-box reserved"></i> Reservado</span>
-            <span><i class="legend-box paid"></i> Pagado</span>
-            <span><i class="legend-box selected"></i> Seleccionado</span>
-          </div>
-
-          <div id="numbersGrid" class="numbers-grid"></div>
+          <p class="checkout-trust-text">
+            Mientras más oportunidades compres, más posibilidades tienes de ganar.
+          </p>
         </section>
 
         <aside id="checkout" class="card sticky-card">
           <div class="section-head compact">
             <div>
-              <span class="section-kicker">Checkout</span>
+              <span class="section-kicker">Datos de compra</span>
               <h2>Completa tus datos</h2>
             </div>
           </div>
 
           <form id="checkoutForm" class="checkout-form">
-            <label>
-              Números seleccionados
-              <textarea id="selectedNumbers" rows="3" readonly placeholder="Aún no has seleccionado números"></textarea>
-            </label>
-
-            <div id="selectedBadges" class="selected-badges"></div>
-
             <label>
               Nombre completo
               <input id="name" type="text" placeholder="Tu nombre" required />
@@ -126,120 +147,46 @@
             <div class="summary-box summary-stack">
               <div>
                 <span>Cantidad</span>
-                <strong id="selectedCount">0 números</strong>
-              </div>
-              <div>
-                <span>Valor unitario</span>
-                <strong id="ticketPrice">$2.000</strong>
+                <strong id="selectedCount">1 oportunidad</strong>
               </div>
               <div>
                 <span>Total</span>
-                <strong id="totalPrice">$0</strong>
+                <strong id="checkoutTotalPrice">$2.000</strong>
               </div>
             </div>
 
             <p class="checkout-trust-text">
-              Puedes reservar tus números y pagar por transferencia.
+              Serás redirigido a Flow para completar el pago. Una vez confirmado, tus
+              oportunidades quedarán registradas automáticamente.
             </p>
 
-            <div class="checkout-actions-stack">
-              <button id="transferReserveBtn" type="button" class="primary-btn">Reservar y transferir</button>
-              <button id="payBtn" type="submit" class="ghost-btn" style="display: none;">Pagar con Khipu</button>
-              <button id="restartPurchaseInlineBtn" type="button" class="ghost-btn" style="display:none;">Reiniciar compra</button>
-            </div>
+            <button id="flowPayBtn" type="submit" class="primary-btn">
+              Pagar con Flow
+            </button>
 
-            <p id="statusMessage" class="status-message">Selecciona uno o más números para continuar.</p>
+            <p id="statusMessage" class="status-message">
+              Completa tus datos para continuar.
+            </p>
           </form>
         </aside>
       </section>
     </main>
 
-    <div id="paymentModal" class="payment-modal hidden">
+    <div id="flowModal" class="payment-modal hidden">
       <div class="payment-modal-card">
-        <span class="section-kicker">Importante</span>
-        <h3>Confirma antes de ir a pagar</h3>
+        <span class="section-kicker">Pago con Flow</span>
+        <h3>Confirma antes de continuar</h3>
         <p>
-          Debes completar el pago dentro de los próximos <strong>10 minutos</strong>.
-          Si no se completa dentro de ese plazo, el proceso se anulará y los números volverán a estar disponibles.
+          Estás comprando <strong id="modalQuantity">1 oportunidad</strong> por un total de
+          <strong id="modalTotal">$2.000</strong>.
         </p>
         <p>
-          Si cancelas el proceso antes de los 10 minutos, los números seguirán bloqueados durante ese mismo tiempo
-          y luego volverán a quedar disponibles para ser comprados.
+          Serás redirigido a Flow para finalizar el pago de forma segura.
         </p>
 
         <div class="payment-modal-actions">
-          <button id="cancelPaymentModalBtn" type="button" class="ghost-btn">Cancelar</button>
-          <button id="confirmPaymentModalBtn" type="button" class="primary-btn">Continuar a pago</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="cancelledFlowModal" class="payment-modal hidden">
-      <div class="payment-modal-card">
-        <span class="section-kicker">Proceso cancelado</span>
-        <h3>El flujo de pago fue cancelado</h3>
-        <p>
-          Tus números continúan bloqueados temporalmente y no podrás volver a reiniciar
-          hasta que finalice el tiempo de reserva.
-        </p>
-        <p>
-          Tiempo restante para liberar los números:
-          <strong id="cancelledFlowCountdown">--:--</strong>
-        </p>
-
-        <div class="payment-modal-actions">
-          <button id="restartPurchaseBtn" type="button" class="primary-btn">Reiniciar compra</button>
-          <button id="closeCancelledFlowModalBtn" type="button" class="ghost-btn">Entendido</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="transferModal" class="payment-modal hidden">
-      <div class="payment-modal-card">
-        <span class="section-kicker">Reserva por transferencia</span>
-        <h3>Completa tu transferencia (leer hasta el final)</h3>
-        <p>
-          Tus números han sido reservados temporalmente. Completa la transferencia y envía el comprobante a Julio Urrutia dentro del plazo indicado.
-        </p>
-
-        <div class="summary-box summary-stack" style="margin-bottom: 18px;">
-          <div>
-            <span>Tiempo visible para enviar comprobante</span>
-            <strong id="transferCountdown">10:00</strong>
-          </div>
-          <div>
-            <span>Números reservados</span>
-            <strong id="transferReservedNumbers">-</strong>
-          </div>
-        </div>
-
-        <div class="transfer-block">
-          <span class="section-kicker">Transferencia tradicional</span>
-          <div class="transfer-data-card">
-            <p><strong>Titular:</strong> Julio URRUTIA</p>
-            <p><strong>RUT:</strong> 17.090.849-K</p>
-            <p><strong>Correo:</strong> urrutia.julio@icloud.com</p>
-            <p><strong>Tipo de cuenta:</strong> Cuenta Corriente</p>
-            <p><strong>Número de cuenta:</strong> 17200038940</p>
-            <p><strong>Banco:</strong> Banco Falabella</p>
-          </div>
-          <button id="copyTransferDataBtn" type="button" class="ghost-btn">Copiar datos</button>
-        </div>
-
-        <div class="transfer-block">
-          <span class="section-kicker">Transferir a través de contacto Banco Falabella</span>
-          <div class="transfer-data-card">
-            <p><strong>Celular:</strong> +56987383719</p>
-            <p><strong>Nombre:</strong> Julio Urrutia</p>
-          </div>
-        </div>
-
-        <p class="checkout-trust-text">
-          Debes enviar el comprobante de transferencia al Wssp +56987383719 (Julio Urrutia) dentro de los próximos 10 minutos, de lo contrario, el/los número/s serán liberados y quedarán disponibles para su compra.
-        </p>
-
-        <div class="payment-modal-actions">
-          <button id="closeTransferModalBtn" type="button" class="ghost-btn">Entendido</button>
+          <button id="cancelFlowModalBtn" type="button" class="ghost-btn">Cancelar</button>
+          <button id="confirmFlowModalBtn" type="button" class="primary-btn">Continuar a Flow</button>
         </div>
       </div>
     </div>
@@ -248,21 +195,37 @@
       <div class="payment-modal-card">
         <span class="section-kicker">Compra realizada</span>
         <h3>Gracias por tu compra</h3>
-        <p>
-          Tu pago fue recibido correctamente y tus números han sido registrados.
+        <p id="successMessage">
+          Tu pago fue recibido correctamente y tus oportunidades han sido registradas.
         </p>
         <p>
-          Ya puedes volver a participar si deseas apoyar nuevamente esta causa.
+          Recuerda: mientras más oportunidades tengas, más posibilidades tienes de ganar.
         </p>
 
         <div class="payment-modal-actions">
-          <button id="newPurchaseBtn" type="button" class="primary-btn">Iniciar nueva compra</button>
+          <button id="newPurchaseBtn" type="button" class="primary-btn">
+            Iniciar nueva compra
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="cancelModal" class="payment-modal hidden">
+      <div class="payment-modal-card">
+        <span class="section-kicker">Proceso no finalizado</span>
+        <h3>El pago no fue completado</h3>
+        <p>
+          No se registraron oportunidades para esta compra. Puedes intentarlo nuevamente cuando quieras.
+        </p>
+
+        <div class="payment-modal-actions">
+          <button id="closeCancelModalBtn" type="button" class="primary-btn">Entendido</button>
         </div>
       </div>
     </div>
 
     <button id="floatingCheckoutBtn" class="floating-checkout-btn hidden" type="button">
-      Continuar con la reserva
+      Pagar con Flow
     </button>
 
     <script src="./app.js" type="module"></script>
