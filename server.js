@@ -21,6 +21,7 @@ const RAFFLE_ID = process.env.RAFFLE_ID || 'rifa-verde';
 const RAFFLE_TITLE = process.env.RAFFLE_TITLE || 'Rifa Contact Center';
 const RAFFLE_PRICE = Number(process.env.RAFFLE_PRICE || 2000);
 const RAFFLE_SIZE = Number(process.env.RAFFLE_SIZE || 1000);
+const FLOW_PAYMENT_TIMEOUT_SECONDS = Number(process.env.FLOW_PAYMENT_TIMEOUT_SECONDS || 900);
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'cambiar-este-token';
 
@@ -66,7 +67,7 @@ function signFlowParams(params) {
     .digest('hex');
 }
 
-async function callFlow(endpoint, params) {
+function buildSignedFlowPayload(params) {
   if (!FLOW_API_KEY || !FLOW_SECRET_KEY) {
     throw new Error('Faltan FLOW_API_KEY o FLOW_SECRET_KEY en Render.');
   }
@@ -78,14 +79,10 @@ async function callFlow(endpoint, params) {
 
   payload.s = signFlowParams(payload);
 
-  const response = await fetch(`${FLOW_BASE_URL}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams(payload),
-  });
+  return payload;
+}
 
+async function parseFlowResponse(response) {
   const text = await response.text();
   let json = {};
 
@@ -100,6 +97,31 @@ async function callFlow(endpoint, params) {
   }
 
   return json;
+}
+
+async function callFlowPost(endpoint, params) {
+  const payload = buildSignedFlowPayload(params);
+
+  const response = await fetch(`${FLOW_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams(payload),
+  });
+
+  return parseFlowResponse(response);
+}
+
+async function callFlowGet(endpoint, params) {
+  const payload = buildSignedFlowPayload(params);
+  const queryString = new URLSearchParams(payload).toString();
+
+  const response = await fetch(`${FLOW_BASE_URL}${endpoint}?${queryString}`, {
+    method: 'GET',
+  });
+
+  return parseFlowResponse(response);
 }
 
 async function ensureRaffleNumbers(size) {
@@ -239,7 +261,7 @@ async function assignSequentialTicketsToOrder(order) {
 }
 
 async function confirmFlowPaymentByToken(token) {
-  const statusData = await callFlow('/payment/getStatus', { token });
+  const statusData = await callFlowGet('/payment/getStatus', { token });
 
   const flowStatus = Number(statusData.status);
   const transactionId = statusData.commerceOrder;
@@ -320,6 +342,8 @@ app.get('/api/health', async (_req, res) => {
     backendPublicUrl: BACKEND_PUBLIC_URL,
     publicFrontendUrl: PUBLIC_FRONTEND_URL,
     flowBaseUrl: FLOW_BASE_URL,
+    hasFlowApiKey: Boolean(FLOW_API_KEY),
+    hasFlowSecretKey: Boolean(FLOW_SECRET_KEY),
   });
 });
 
@@ -393,12 +417,13 @@ app.post('/api/flow/create', async (req, res) => {
 
     if (orderError) throw orderError;
 
-    const flowResponse = await callFlow('/payment/create', {
+    const flowResponse = await callFlowPost('/payment/create', {
       commerceOrder: transactionId,
       subject: `${RAFFLE_TITLE} - ${quantity} oportunidad(es)`,
       currency: 'CLP',
       amount: String(amount),
       email: payerEmail,
+      paymentMethod: '9',
       urlConfirmation: `${backendBaseUrl()}/api/flow/confirmation`,
       urlReturn: `${backendBaseUrl()}/api/flow/return`,
       optional: JSON.stringify({
@@ -408,6 +433,8 @@ app.post('/api/flow/create', async (req, res) => {
         payerEmail,
         payerPhone,
       }),
+      timeout: String(FLOW_PAYMENT_TIMEOUT_SECONDS),
+      checkout_timeout: String(FLOW_PAYMENT_TIMEOUT_SECONDS),
     });
 
     await supabase
